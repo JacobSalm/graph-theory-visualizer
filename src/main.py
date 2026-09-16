@@ -1,16 +1,25 @@
 import pygame
 
+from algorithm1 import (
+    is_path,
+    is_cycle,
+    find_shortest_closed_subwalk,
+    remove_closed_subwalk
+)
 
-# -------------------------
-# Setup
-# -------------------------
+
+# =========================================================
+# SETUP
+# =========================================================
 
 pygame.init()
 
 WIDTH = 1200
 HEIGHT = 700
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode(
+    (WIDTH, HEIGHT)
+)
 
 pygame.display.set_caption(
     "Graph Theory Visualizer"
@@ -18,15 +27,25 @@ pygame.display.set_caption(
 
 clock = pygame.time.Clock()
 
-font = pygame.font.SysFont(
+vertex_font = pygame.font.SysFont(
     None,
     30
 )
 
+ui_font = pygame.font.SysFont(
+    None,
+    26
+)
 
-# -------------------------
-# Colors
-# -------------------------
+menu_font = pygame.font.SysFont(
+    None,
+    25
+)
+
+
+# =========================================================
+# COLORS
+# =========================================================
 
 BACKGROUND = (30, 30, 30)
 
@@ -36,25 +55,60 @@ VERTEX_COLOR = (230, 230, 230)
 
 TEXT_COLOR = (20, 20, 20)
 
+WHITE = (240, 240, 240)
+
 BORDER_COLOR = (255, 255, 255)
 
 EDGE_COLOR = (180, 180, 180)
 
 SELECTED_COLOR = (255, 220, 0)
 
+HOVER_COLOR = (255, 110, 110)
 
-# -------------------------
-# Settings
-# -------------------------
+MENU_BACKGROUND = (45, 45, 45)
+
+MENU_HOVER = (75, 75, 75)
+
+MENU_BORDER = (180, 180, 180)
+
+WALK_EDGE_COLOR = (70, 150, 255)
+
+WALK_VERTEX_COLOR = (100, 180, 255)
+
+ALGORITHM_PATH_COLOR = (180, 100, 255)
+
+CLOSED_WALK_COLOR = (255, 90, 70)
+
+
+# =========================================================
+# SETTINGS
+# =========================================================
 
 GRID_SIZE = 50
 
 VERTEX_RADIUS = 22
 
+MENU_WIDTH = 200
 
-# -------------------------
-# Graph data
-# -------------------------
+MENU_ITEM_HEIGHT = 42
+
+
+# =========================================================
+# MODES
+# =========================================================
+
+EDIT_MODE = "EDIT GRAPH"
+
+WALK_MODE = "BUILD WALK"
+
+ALGORITHM_MODE = "RUN ALGORITHM"
+
+current_mode = EDIT_MODE
+
+
+# =========================================================
+# GRAPH DATA
+# =========================================================
 
 vertices = []
 
@@ -62,26 +116,74 @@ edges = []
 
 selected_vertex = None
 
+next_vertex_number = 0
 
-# -------------------------
-# Helper functions
-# -------------------------
+
+# =========================================================
+# WALK DATA
+# =========================================================
+
+walk = []
+
+
+# =========================================================
+# ALGORITHM DATA
+# =========================================================
+
+algorithm_path = []
+
+algorithm_closed = None
+
+algorithm_phase = "IDLE"
+
+algorithm_message = ""
+
+
+# =========================================================
+# CONTEXT MENU
+# =========================================================
+
+menu_open = False
+
+menu_x = 0
+
+menu_y = 0
+
+menu_items = [
+    "EDIT GRAPH",
+    "BUILD WALK",
+    "RUN ALGORITHM",
+    "RESET GRAPH"
+]
+
+
+# =========================================================
+# VERTEX LABELS
+# =========================================================
 
 def get_vertex_label(index):
 
-    # First 26 vertices:
-    # a, b, c, ... z
+    # a through z
     if index < 26:
-        return chr(ord("a") + index)
 
-    # Next 26 vertices:
-    # A, B, C, ... Z
+        return chr(
+            ord("a") + index
+        )
+
+    # A through Z
     if index < 52:
-        return chr(ord("A") + (index - 26))
 
-    # Backup if more than 52 vertices
+        return chr(
+            ord("A") + (index - 26)
+        )
+
+    # Backup after 52 vertices
     return f"V{index + 1}"
 
+
+# =========================================================
+# GRID
+# =========================================================
 
 def snap_to_grid(value):
 
@@ -89,142 +191,6 @@ def snap_to_grid(value):
         value / GRID_SIZE
     ) * GRID_SIZE
 
-
-def position_is_valid(x, y):
-
-    for vertex in vertices:
-
-        if (
-            vertex["x"] == x
-            and vertex["y"] == y
-        ):
-            return False
-
-    return True
-
-
-def get_vertex_at_position(x, y):
-
-    for index, vertex in enumerate(vertices):
-
-        dx = x - vertex["x"]
-        dy = y - vertex["y"]
-
-        distance_squared = (
-            dx * dx + dy * dy
-        )
-
-        if distance_squared <= VERTEX_RADIUS ** 2:
-            return index
-
-    return None
-
-
-def edge_exists(vertex1, vertex2):
-
-    for edge in edges:
-
-        a, b = edge
-
-        if (
-            (a == vertex1 and b == vertex2)
-            or
-            (a == vertex2 and b == vertex1)
-        ):
-            return True
-
-    return False
-
-
-def add_vertex(x, y):
-
-    x = snap_to_grid(x)
-    y = snap_to_grid(y)
-
-    if not position_is_valid(x, y):
-
-        print(
-            "A vertex already exists here."
-        )
-
-        return
-
-    label = get_vertex_label(
-        len(vertices)
-    )
-
-    vertex = {
-        "x": x,
-        "y": y,
-        "label": label
-    }
-
-    vertices.append(vertex)
-
-    print(
-        f"Created vertex {label} "
-        f"at ({x}, {y})"
-    )
-
-
-def toggle_edge(vertex1, vertex2):
-
-    # No self-loop
-    if vertex1 == vertex2:
-
-        print(
-            "Cannot connect a vertex "
-            "to itself."
-        )
-
-        return
-
-    # -------------------------
-    # If edge exists, remove it
-    # -------------------------
-
-    for edge in edges:
-
-        a, b = edge
-
-        if (
-            (a == vertex1 and b == vertex2)
-            or
-            (a == vertex2 and b == vertex1)
-        ):
-
-            edges.remove(edge)
-
-            label1 = vertices[vertex1]["label"]
-            label2 = vertices[vertex2]["label"]
-
-            print(
-                f"Removed edge "
-                f"{label1} -- {label2}"
-            )
-
-            return
-
-    # -------------------------
-    # Otherwise create the edge
-    # -------------------------
-
-    edges.append(
-        (vertex1, vertex2)
-    )
-
-    label1 = vertices[vertex1]["label"]
-    label2 = vertices[vertex2]["label"]
-
-    print(
-        f"Created edge "
-        f"{label1} -- {label2}"
-    )
-
-
-# -------------------------
-# Drawing
-# -------------------------
 
 def draw_grid():
 
@@ -255,6 +221,674 @@ def draw_grid():
         )
 
 
+# =========================================================
+# VERTEX HELPERS
+# =========================================================
+
+def position_is_valid(x, y):
+
+    for vertex in vertices:
+
+        if (
+            vertex["x"] == x
+            and
+            vertex["y"] == y
+        ):
+
+            return False
+
+    return True
+
+
+def get_vertex_at_position(x, y):
+
+    for index, vertex in enumerate(
+        vertices
+    ):
+
+        dx = x - vertex["x"]
+
+        dy = y - vertex["y"]
+
+        distance_squared = (
+            dx * dx
+            +
+            dy * dy
+        )
+
+        if (
+            distance_squared
+            <= VERTEX_RADIUS ** 2
+        ):
+
+            return index
+
+    return None
+
+
+def get_vertex_index_by_label(label):
+
+    for index, vertex in enumerate(
+        vertices
+    ):
+
+        if vertex["label"] == label:
+
+            return index
+
+    return None
+
+
+# =========================================================
+# RESET ALGORITHM STATE
+# =========================================================
+
+def reset_algorithm_state():
+
+    global algorithm_path
+    global algorithm_closed
+    global algorithm_phase
+    global algorithm_message
+
+    algorithm_path = []
+
+    algorithm_closed = None
+
+    algorithm_phase = "IDLE"
+
+    algorithm_message = ""
+
+
+# =========================================================
+# ADD VERTEX
+# =========================================================
+
+def add_vertex(x, y):
+
+    global next_vertex_number
+
+    x = snap_to_grid(x)
+
+    y = snap_to_grid(y)
+
+    if not position_is_valid(x, y):
+
+        print(
+            "A vertex already exists here."
+        )
+
+        return
+
+    label = get_vertex_label(
+        next_vertex_number
+    )
+
+    next_vertex_number += 1
+
+    vertex = {
+        "x": x,
+        "y": y,
+        "label": label
+    }
+
+    vertices.append(
+        vertex
+    )
+
+    print(
+        f"Created vertex {label} "
+        f"at ({x}, {y})"
+    )
+
+
+# =========================================================
+# DELETE VERTEX
+# =========================================================
+
+def delete_vertex(vertex_index):
+
+    global selected_vertex
+
+    label = vertices[
+        vertex_index
+    ]["label"]
+
+    remaining_edges = []
+
+    # ---------------------------------
+    # Remove attached edges
+    # and fix remaining indexes
+    # ---------------------------------
+
+    for vertex1, vertex2 in edges:
+
+        if (
+            vertex1 == vertex_index
+            or
+            vertex2 == vertex_index
+        ):
+
+            continue
+
+        if vertex1 > vertex_index:
+
+            vertex1 -= 1
+
+        if vertex2 > vertex_index:
+
+            vertex2 -= 1
+
+        remaining_edges.append(
+            (vertex1, vertex2)
+        )
+
+    edges.clear()
+
+    edges.extend(
+        remaining_edges
+    )
+
+    vertices.pop(
+        vertex_index
+    )
+
+    # Existing walk is no longer reliable
+    walk.clear()
+
+    reset_algorithm_state()
+
+    selected_vertex = None
+
+    print(
+        f"Deleted vertex {label} "
+        f"and all attached edges."
+    )
+
+    print(
+        "Existing walk cleared "
+        "because the graph changed."
+    )
+
+
+# =========================================================
+# EDGE FUNCTIONS
+# =========================================================
+
+def edge_exists(vertex1, vertex2):
+
+    for edge in edges:
+
+        a, b = edge
+
+        if (
+            (
+                a == vertex1
+                and
+                b == vertex2
+            )
+            or
+            (
+                a == vertex2
+                and
+                b == vertex1
+            )
+        ):
+
+            return True
+
+    return False
+
+
+def vertices_are_connected(
+    vertex1,
+    vertex2
+):
+
+    return edge_exists(
+        vertex1,
+        vertex2
+    )
+
+
+def toggle_edge(vertex1, vertex2):
+
+    if vertex1 == vertex2:
+
+        print(
+            "Cannot connect a vertex "
+            "to itself."
+        )
+
+        return
+
+    # ---------------------------------
+    # If edge already exists:
+    # remove it
+    # ---------------------------------
+
+    for edge in edges:
+
+        a, b = edge
+
+        if (
+            (
+                a == vertex1
+                and
+                b == vertex2
+            )
+            or
+            (
+                a == vertex2
+                and
+                b == vertex1
+            )
+        ):
+
+            edges.remove(
+                edge
+            )
+
+            walk.clear()
+
+            reset_algorithm_state()
+
+            label1 = vertices[
+                vertex1
+            ]["label"]
+
+            label2 = vertices[
+                vertex2
+            ]["label"]
+
+            print(
+                f"Removed edge "
+                f"{label1} -- {label2}"
+            )
+
+            print(
+                "Existing walk cleared "
+                "because the graph changed."
+            )
+
+            return
+
+    # ---------------------------------
+    # Otherwise create edge
+    # ---------------------------------
+
+    edges.append(
+        (vertex1, vertex2)
+    )
+
+    walk.clear()
+
+    reset_algorithm_state()
+
+    label1 = vertices[
+        vertex1
+    ]["label"]
+
+    label2 = vertices[
+        vertex2
+    ]["label"]
+
+    print(
+        f"Created edge "
+        f"{label1} -- {label2}"
+    )
+
+    print(
+        "Existing walk cleared "
+        "because the graph changed."
+    )
+
+
+# =========================================================
+# WALK FUNCTIONS
+# =========================================================
+
+def add_vertex_to_walk(vertex_index):
+
+    # ---------------------------------
+    # First vertex
+    # ---------------------------------
+
+    if len(walk) == 0:
+
+        walk.append(
+            vertex_index
+        )
+
+        print(
+            f"Walk started at "
+            f"{vertices[vertex_index]['label']}"
+        )
+
+        return
+
+    # ---------------------------------
+    # Every next vertex must have edge
+    # ---------------------------------
+
+    previous_vertex = walk[-1]
+
+    if vertices_are_connected(
+        previous_vertex,
+        vertex_index
+    ):
+
+        walk.append(
+            vertex_index
+        )
+
+        print(
+            "Walk: "
+            +
+            " -> ".join(
+                vertices[index]["label"]
+                for index in walk
+            )
+        )
+
+    else:
+
+        print(
+            f"INVALID WALK MOVE: "
+            f"No edge between "
+            f"{vertices[previous_vertex]['label']} "
+            f"and "
+            f"{vertices[vertex_index]['label']}"
+        )
+
+
+# =========================================================
+# ALGORITHM 1 CONTROLS
+# =========================================================
+
+def start_algorithm():
+
+    global algorithm_path
+    global algorithm_closed
+    global algorithm_phase
+    global algorithm_message
+
+    if len(walk) == 0:
+
+        algorithm_path = []
+
+        algorithm_closed = None
+
+        algorithm_phase = "IDLE"
+
+        algorithm_message = (
+            "Build a walk first."
+        )
+
+        print(
+            "Cannot run Algorithm 1: "
+            "no walk exists."
+        )
+
+        return
+
+    # ---------------------------------
+    # P := W
+    #
+    # Convert vertex indexes into labels
+    # before sending data to algorithm.
+    # ---------------------------------
+
+    algorithm_path = [
+
+        vertices[index]["label"]
+
+        for index in walk
+    ]
+
+    algorithm_closed = None
+
+    algorithm_phase = "CHECK"
+
+    algorithm_message = (
+        "P := W    Press SPACE to continue."
+    )
+
+    print(
+        "Algorithm 1 started."
+    )
+
+    print(
+        "P = "
+        +
+        " -> ".join(
+            algorithm_path
+        )
+    )
+
+def next_algorithm_step():
+
+    global algorithm_path
+    global algorithm_closed
+    global algorithm_phase
+    global algorithm_message
+
+    if len(algorithm_path) == 0:
+
+        algorithm_message = (
+            "No walk loaded."
+        )
+
+        return
+
+
+    # =====================================================
+    # CHECK WHETHER P IS A PATH OR CYCLE
+    # =====================================================
+
+    if algorithm_phase == "CHECK":
+
+        # ---------------------------------
+        # STOP IF P IS A PATH
+        # ---------------------------------
+
+        if is_path(algorithm_path):
+
+            algorithm_phase = "FINISHED"
+
+            algorithm_closed = None
+
+            algorithm_message = (
+                "P is a path. "
+                "Algorithm finished."
+            )
+
+            print(
+                "Algorithm finished: "
+                "P is a path."
+            )
+
+            print(
+                "Output P = "
+                +
+                " -> ".join(
+                    algorithm_path
+                )
+            )
+
+            return
+
+
+        # ---------------------------------
+        # STOP IF P IS A CYCLE
+        # ---------------------------------
+
+        if is_cycle(algorithm_path):
+
+            algorithm_phase = "FINISHED"
+
+            algorithm_closed = None
+
+            algorithm_message = (
+                "P is a cycle. "
+                "Algorithm finished."
+            )
+
+            print(
+                "Algorithm finished: "
+                "P is a cycle."
+            )
+
+            print(
+                "Output P = "
+                +
+                " -> ".join(
+                    algorithm_path
+                )
+            )
+
+            return
+
+
+        # ---------------------------------
+        # OTHERWISE FIND SHORTEST
+        # CLOSED SUBWALK C
+        # ---------------------------------
+
+        algorithm_closed = (
+            find_shortest_closed_subwalk(
+                algorithm_path
+            )
+        )
+
+        if algorithm_closed is None:
+
+            algorithm_phase = "FINISHED"
+
+            algorithm_message = (
+                "No closed subwalk found."
+            )
+
+            return
+
+        algorithm_phase = "SHOW_C"
+
+        algorithm_message = (
+            "Found shortest closed "
+            "subwalk C. "
+            "Press SPACE to remove it."
+        )
+
+        print(
+            "C = "
+            +
+            " -> ".join(
+                algorithm_closed["walk"]
+            )
+        )
+
+
+    # =====================================================
+    # REMOVE C
+    #
+    # P := P ⊖ C
+    # =====================================================
+
+    elif algorithm_phase == "SHOW_C":
+
+        algorithm_path = (
+            remove_closed_subwalk(
+                algorithm_path,
+                algorithm_closed["start"],
+                algorithm_closed["end"]
+            )
+        )
+
+        algorithm_closed = None
+
+        algorithm_phase = "CHECK"
+
+        algorithm_message = (
+            "P := P minus C. "
+            "Press SPACE to continue."
+        )
+
+        print(
+            "New P = "
+            +
+            " -> ".join(
+                algorithm_path
+            )
+        )
+
+
+    # =====================================================
+    # FINISHED
+    # =====================================================
+
+    elif algorithm_phase == "FINISHED":
+
+        algorithm_message = (
+            "Algorithm already finished."
+        )
+
+# =========================================================
+# RESET GRAPH
+# =========================================================
+
+def reset_graph():
+
+    global selected_vertex
+    global next_vertex_number
+
+    vertices.clear()
+
+    edges.clear()
+
+    walk.clear()
+
+    selected_vertex = None
+
+    next_vertex_number = 0
+
+    reset_algorithm_state()
+
+    print(
+        "Graph reset."
+    )
+
+
+# =========================================================
+# MODE CONTROL
+# =========================================================
+
+def set_mode(new_mode):
+
+    global current_mode
+    global selected_vertex
+    global menu_open
+
+    current_mode = new_mode
+
+    selected_vertex = None
+
+    menu_open = False
+
+    print(
+        f"Mode changed to: "
+        f"{current_mode}"
+    )
+
+    # Every time Algorithm Mode is entered,
+    # start again from P := W
+    if new_mode == ALGORITHM_MODE:
+
+        start_algorithm()
+
+
+# =========================================================
+# DRAW NORMAL EDGES
+# =========================================================
+
 def draw_edges():
 
     for vertex1, vertex2 in edges:
@@ -278,12 +912,229 @@ def draw_edges():
         )
 
 
+# =========================================================
+# DRAW WALK
+# =========================================================
+
+def draw_walk():
+
+    if len(walk) == 0:
+
+        return
+
+    # ---------------------------------
+    # Walk edges
+    # ---------------------------------
+
+    for index in range(
+        len(walk) - 1
+    ):
+
+        vertex1 = walk[index]
+
+        vertex2 = walk[
+            index + 1
+        ]
+
+        start = (
+            vertices[vertex1]["x"],
+            vertices[vertex1]["y"]
+        )
+
+        end = (
+            vertices[vertex2]["x"],
+            vertices[vertex2]["y"]
+        )
+
+        pygame.draw.line(
+            screen,
+            WALK_EDGE_COLOR,
+            start,
+            end,
+            7
+        )
+
+    # ---------------------------------
+    # Walk vertices
+    # ---------------------------------
+
+    for vertex_index in walk:
+
+        vertex = vertices[
+            vertex_index
+        ]
+
+        pygame.draw.circle(
+            screen,
+            WALK_VERTEX_COLOR,
+            (
+                vertex["x"],
+                vertex["y"]
+            ),
+            VERTEX_RADIUS + 5,
+            4
+        )
+
+
+# =========================================================
+# DRAW CURRENT ALGORITHM PATH P
+# =========================================================
+
+def draw_algorithm_path():
+
+    if current_mode != ALGORITHM_MODE:
+
+        return
+
+    if len(algorithm_path) < 2:
+
+        return
+
+    for index in range(
+        len(algorithm_path) - 1
+    ):
+
+        label1 = algorithm_path[
+            index
+        ]
+
+        label2 = algorithm_path[
+            index + 1
+        ]
+
+        vertex1 = (
+            get_vertex_index_by_label(
+                label1
+            )
+        )
+
+        vertex2 = (
+            get_vertex_index_by_label(
+                label2
+            )
+        )
+
+        if (
+            vertex1 is None
+            or
+            vertex2 is None
+        ):
+
+            continue
+
+        start = (
+            vertices[vertex1]["x"],
+            vertices[vertex1]["y"]
+        )
+
+        end = (
+            vertices[vertex2]["x"],
+            vertices[vertex2]["y"]
+        )
+
+        pygame.draw.line(
+            screen,
+            ALGORITHM_PATH_COLOR,
+            start,
+            end,
+            7
+        )
+
+
+# =========================================================
+# DRAW CLOSED SUBWALK C
+# =========================================================
+
+def draw_closed_subwalk():
+
+    if current_mode != ALGORITHM_MODE:
+
+        return
+
+    if algorithm_closed is None:
+
+        return
+
+    closed_walk = (
+        algorithm_closed["walk"]
+    )
+
+    for index in range(
+        len(closed_walk) - 1
+    ):
+
+        label1 = closed_walk[
+            index
+        ]
+
+        label2 = closed_walk[
+            index + 1
+        ]
+
+        vertex1 = (
+            get_vertex_index_by_label(
+                label1
+            )
+        )
+
+        vertex2 = (
+            get_vertex_index_by_label(
+                label2
+            )
+        )
+
+        if (
+            vertex1 is None
+            or
+            vertex2 is None
+        ):
+
+            continue
+
+        start = (
+            vertices[vertex1]["x"],
+            vertices[vertex1]["y"]
+        )
+
+        end = (
+            vertices[vertex2]["x"],
+            vertices[vertex2]["y"]
+        )
+
+        pygame.draw.line(
+            screen,
+            CLOSED_WALK_COLOR,
+            start,
+            end,
+            10
+        )
+
+
+# =========================================================
+# DRAW VERTICES
+# =========================================================
+
 def draw_vertices():
 
-    for index, vertex in enumerate(vertices):
+    mouse_x, mouse_y = (
+        pygame.mouse.get_pos()
+    )
+
+    hovered_vertex = (
+        get_vertex_at_position(
+            mouse_x,
+            mouse_y
+        )
+    )
+
+    for index, vertex in enumerate(
+        vertices
+    ):
 
         x = vertex["x"]
+
         y = vertex["y"]
+
         label = vertex["label"]
 
         pygame.draw.circle(
@@ -293,15 +1144,32 @@ def draw_vertices():
             VERTEX_RADIUS
         )
 
-        # Selected vertex gets yellow border
+        # ---------------------------------
+        # Border
+        # ---------------------------------
+
         if index == selected_vertex:
 
-            border_color = SELECTED_COLOR
+            border_color = (
+                SELECTED_COLOR
+            )
+
             border_width = 5
+
+        elif index == hovered_vertex:
+
+            border_color = (
+                HOVER_COLOR
+            )
+
+            border_width = 4
 
         else:
 
-            border_color = BORDER_COLOR
+            border_color = (
+                BORDER_COLOR
+            )
+
             border_width = 2
 
         pygame.draw.circle(
@@ -312,7 +1180,11 @@ def draw_vertices():
             border_width
         )
 
-        text = font.render(
+        # ---------------------------------
+        # Label
+        # ---------------------------------
+
+        text = vertex_font.render(
             label,
             True,
             TEXT_COLOR
@@ -328,94 +1200,719 @@ def draw_vertices():
         )
 
 
-# -------------------------
-# Main loop
-# -------------------------
+# =========================================================
+# DRAW MODE DISPLAY
+# =========================================================
+
+def draw_mode_display():
+
+    mode_text = ui_font.render(
+        f"MODE: {current_mode}",
+        True,
+        WHITE
+    )
+
+    screen.blit(
+        mode_text,
+        (15, 15)
+    )
+
+    # Different instructions depending
+    # on current mode
+
+    if current_mode == EDIT_MODE:
+
+        instructions = (
+            "1 Edit   2 Walk   3 Algorithm"
+            "   |   Hover + X Delete"
+            "   |   Right Click Menu"
+        )
+
+    elif current_mode == WALK_MODE:
+
+        instructions = (
+            "Click vertices to build W"
+            "   |   Backspace Undo"
+            "   |   C Clear"
+            "   |   1 Edit   3 Algorithm"
+        )
+
+    else:
+
+        instructions = (
+            "SPACE = Next Algorithm Step"
+            "   |   1 Edit"
+            "   |   2 Walk"
+            "   |   Right Click Menu"
+        )
+
+    help_text = ui_font.render(
+        instructions,
+        True,
+        (170, 170, 170)
+    )
+
+    screen.blit(
+        help_text,
+        (15, 45)
+    )
+
+
+# =========================================================
+# DRAW WALK DISPLAY
+# =========================================================
+
+def draw_walk_display():
+
+    if len(walk) == 0:
+
+        walk_string = (
+            "W = empty"
+        )
+
+    else:
+
+        labels = [
+
+            vertices[index]["label"]
+
+            for index in walk
+        ]
+
+        walk_string = (
+            "W = "
+            +
+            " -> ".join(
+                labels
+            )
+        )
+
+    text = ui_font.render(
+        walk_string,
+        True,
+        WHITE
+    )
+
+    screen.blit(
+        text,
+        (15, 75)
+    )
+
+
+# =========================================================
+# DRAW ALGORITHM DISPLAY
+# =========================================================
+
+def draw_algorithm_display():
+
+    if current_mode != ALGORITHM_MODE:
+
+        return
+
+    # ---------------------------------
+    # P
+    # ---------------------------------
+
+    if len(algorithm_path) > 0:
+
+        path_text = (
+            "P = "
+            +
+            " -> ".join(
+                algorithm_path
+            )
+        )
+
+    else:
+
+        path_text = (
+            "P = empty"
+        )
+
+    rendered_path = ui_font.render(
+        path_text,
+        True,
+        WHITE
+    )
+
+    screen.blit(
+        rendered_path,
+        (15, 105)
+    )
+
+
+    # ---------------------------------
+    # C
+    # ---------------------------------
+
+    if algorithm_closed is not None:
+
+        closed_text = (
+            "C = "
+            +
+            " -> ".join(
+                algorithm_closed["walk"]
+            )
+        )
+
+    else:
+
+        closed_text = (
+            "C = none"
+        )
+
+    rendered_closed = ui_font.render(
+        closed_text,
+        True,
+        WHITE
+    )
+
+    screen.blit(
+        rendered_closed,
+        (15, 135)
+    )
+
+
+    # ---------------------------------
+    # Current explanation
+    # ---------------------------------
+
+    message = ui_font.render(
+        algorithm_message,
+        True,
+        WHITE
+    )
+
+    screen.blit(
+        message,
+        (15, 165)
+    )
+
+
+# =========================================================
+# CONTEXT MENU
+# =========================================================
+
+def open_context_menu(x, y):
+
+    global menu_open
+    global menu_x
+    global menu_y
+
+    menu_open = True
+
+    menu_x = min(
+        x,
+        WIDTH - MENU_WIDTH
+    )
+
+    total_height = (
+        len(menu_items)
+        *
+        MENU_ITEM_HEIGHT
+    )
+
+    menu_y = min(
+        y,
+        HEIGHT - total_height
+    )
+
+
+def draw_context_menu():
+
+    if not menu_open:
+
+        return
+
+    mouse_x, mouse_y = (
+        pygame.mouse.get_pos()
+    )
+
+    total_height = (
+        len(menu_items)
+        *
+        MENU_ITEM_HEIGHT
+    )
+
+    # ---------------------------------
+    # Background
+    # ---------------------------------
+
+    pygame.draw.rect(
+        screen,
+        MENU_BACKGROUND,
+        (
+            menu_x,
+            menu_y,
+            MENU_WIDTH,
+            total_height
+        )
+    )
+
+    # ---------------------------------
+    # Border
+    # ---------------------------------
+
+    pygame.draw.rect(
+        screen,
+        MENU_BORDER,
+        (
+            menu_x,
+            menu_y,
+            MENU_WIDTH,
+            total_height
+        ),
+        2
+    )
+
+    # ---------------------------------
+    # Menu items
+    # ---------------------------------
+
+    for index, item in enumerate(
+        menu_items
+    ):
+
+        item_y = (
+            menu_y
+            +
+            index * MENU_ITEM_HEIGHT
+        )
+
+        item_rect = pygame.Rect(
+            menu_x,
+            item_y,
+            MENU_WIDTH,
+            MENU_ITEM_HEIGHT
+        )
+
+        if item_rect.collidepoint(
+            mouse_x,
+            mouse_y
+        ):
+
+            pygame.draw.rect(
+                screen,
+                MENU_HOVER,
+                item_rect
+            )
+
+        text = menu_font.render(
+            item,
+            True,
+            WHITE
+        )
+
+        screen.blit(
+            text,
+            (
+                menu_x + 12,
+                item_y + 10
+            )
+        )
+
+
+# =========================================================
+# HANDLE CONTEXT MENU CLICK
+# =========================================================
+
+def handle_menu_click(x, y):
+
+    global menu_open
+
+    if not menu_open:
+
+        return False
+
+    for index, item in enumerate(
+        menu_items
+    ):
+
+        item_rect = pygame.Rect(
+            menu_x,
+            menu_y
+            +
+            index * MENU_ITEM_HEIGHT,
+            MENU_WIDTH,
+            MENU_ITEM_HEIGHT
+        )
+
+        if item_rect.collidepoint(
+            x,
+            y
+        ):
+
+            if item == "EDIT GRAPH":
+
+                set_mode(
+                    EDIT_MODE
+                )
+
+            elif item == "BUILD WALK":
+
+                set_mode(
+                    WALK_MODE
+                )
+
+            elif item == "RUN ALGORITHM":
+
+                set_mode(
+                    ALGORITHM_MODE
+                )
+
+            elif item == "RESET GRAPH":
+
+                reset_graph()
+
+                menu_open = False
+
+            return True
+
+    # Clicking outside menu closes it
+    menu_open = False
+
+    return False
+
+
+# =========================================================
+# MAIN LOOP
+# =========================================================
 
 running = True
+
 
 while running:
 
     for event in pygame.event.get():
 
+        # =================================================
+        # QUIT
+        # =================================================
+
         if event.type == pygame.QUIT:
+
             running = False
 
 
-        # -------------------------
-        # Mouse clicks
-        # -------------------------
+        # =================================================
+        # KEYBOARD
+        # =================================================
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.KEYDOWN:
 
-            # Left click
-            if event.button == 1:
 
-                mouse_x, mouse_y = event.pos
+            # ---------------------------------
+            # 1 = Edit Mode
+            # ---------------------------------
 
-                clicked_vertex = (
-                    get_vertex_at_position(
-                        mouse_x,
-                        mouse_y
-                    )
+            if event.key == pygame.K_1:
+
+                set_mode(
+                    EDIT_MODE
                 )
 
 
-                # -------------------------
-                # Clicked a vertex
-                # -------------------------
+            # ---------------------------------
+            # 2 = Walk Mode
+            # ---------------------------------
 
-                if clicked_vertex is not None:
+            elif event.key == pygame.K_2:
 
-                    if selected_vertex is None:
+                set_mode(
+                    WALK_MODE
+                )
 
-                        selected_vertex = clicked_vertex
 
-                        print(
-                            f"Selected vertex "
-                            f"{vertices[selected_vertex]['label']}"
+            # ---------------------------------
+            # 3 = Algorithm Mode
+            # ---------------------------------
+
+            elif event.key == pygame.K_3:
+
+                set_mode(
+                    ALGORITHM_MODE
+                )
+
+
+            # ---------------------------------
+            # SPACE = next algorithm step
+            # ---------------------------------
+
+            elif event.key == pygame.K_SPACE:
+
+                if (
+                    current_mode
+                    ==
+                    ALGORITHM_MODE
+                ):
+
+                    next_algorithm_step()
+
+
+            # ---------------------------------
+            # X = delete hovered vertex
+            #
+            # Only while editing
+            # ---------------------------------
+
+            elif event.key == pygame.K_x:
+
+                if (
+                    current_mode
+                    ==
+                    EDIT_MODE
+                ):
+
+                    mouse_x, mouse_y = (
+                        pygame.mouse.get_pos()
+                    )
+
+                    hovered_vertex = (
+                        get_vertex_at_position(
+                            mouse_x,
+                            mouse_y
+                        )
+                    )
+
+                    if (
+                        hovered_vertex
+                        is not None
+                    ):
+
+                        delete_vertex(
+                            hovered_vertex
                         )
 
-                    else:
 
-                        toggle_edge(
-                            selected_vertex,
-                            clicked_vertex
-                        )
+            # ---------------------------------
+            # BACKSPACE = undo walk step
+            # ---------------------------------
 
-                        selected_vertex = None
+            elif (
+                event.key
+                ==
+                pygame.K_BACKSPACE
+            ):
 
+                if (
+                    current_mode
+                    ==
+                    WALK_MODE
+                    and
+                    len(walk) > 0
+                ):
 
-                # -------------------------
-                # Clicked empty space
-                # -------------------------
+                    removed_vertex = (
+                        walk.pop()
+                    )
 
-                else:
+                    reset_algorithm_state()
 
-                    selected_vertex = None
-
-                    add_vertex(
-                        mouse_x,
-                        mouse_y
+                    print(
+                        f"Removed "
+                        f"{vertices[removed_vertex]['label']} "
+                        f"from walk."
                     )
 
 
-            # -------------------------
-            # Right click cancels selection
-            # -------------------------
+            # ---------------------------------
+            # C = clear walk
+            # ---------------------------------
 
-            elif event.button == 3:
+            elif event.key == pygame.K_c:
+
+                if (
+                    current_mode
+                    ==
+                    WALK_MODE
+                ):
+
+                    walk.clear()
+
+                    reset_algorithm_state()
+
+                    print(
+                        "Walk cleared."
+                    )
+
+
+            # ---------------------------------
+            # ESC
+            # ---------------------------------
+
+            elif (
+                event.key
+                ==
+                pygame.K_ESCAPE
+            ):
+
+                menu_open = False
 
                 selected_vertex = None
 
-                print(
-                    "Selection cancelled."
+
+        # =================================================
+        # MOUSE
+        # =================================================
+
+        if (
+            event.type
+            ==
+            pygame.MOUSEBUTTONDOWN
+        ):
+
+            mouse_x, mouse_y = (
+                event.pos
+            )
+
+
+            # ---------------------------------
+            # RIGHT CLICK
+            # ---------------------------------
+
+            if event.button == 3:
+
+                open_context_menu(
+                    mouse_x,
+                    mouse_y
                 )
 
+                continue
 
-    # -------------------------
-    # Draw everything
-    # -------------------------
+
+            # ---------------------------------
+            # LEFT CLICK
+            # ---------------------------------
+
+            if event.button == 1:
+
+
+                # ---------------------------------
+                # Context menu gets priority
+                # ---------------------------------
+
+                if menu_open:
+
+                    handle_menu_click(
+                        mouse_x,
+                        mouse_y
+                    )
+
+                    continue
+
+
+                # =================================
+                # EDIT MODE
+                # =================================
+
+                if (
+                    current_mode
+                    ==
+                    EDIT_MODE
+                ):
+
+                    clicked_vertex = (
+                        get_vertex_at_position(
+                            mouse_x,
+                            mouse_y
+                        )
+                    )
+
+
+                    # -----------------------------
+                    # Clicked existing vertex
+                    # -----------------------------
+
+                    if (
+                        clicked_vertex
+                        is not None
+                    ):
+
+                        if (
+                            selected_vertex
+                            is None
+                        ):
+
+                            selected_vertex = (
+                                clicked_vertex
+                            )
+
+                            print(
+                                f"Selected vertex "
+                                f"{vertices[selected_vertex]['label']}"
+                            )
+
+                        else:
+
+                            toggle_edge(
+                                selected_vertex,
+                                clicked_vertex
+                            )
+
+                            selected_vertex = None
+
+
+                    # -----------------------------
+                    # Clicked empty space
+                    # -----------------------------
+
+                    else:
+
+                        selected_vertex = None
+
+                        add_vertex(
+                            mouse_x,
+                            mouse_y
+                        )
+
+
+                # =================================
+                # BUILD WALK MODE
+                # =================================
+
+                elif (
+                    current_mode
+                    ==
+                    WALK_MODE
+                ):
+
+                    clicked_vertex = (
+                        get_vertex_at_position(
+                            mouse_x,
+                            mouse_y
+                        )
+                    )
+
+                    if (
+                        clicked_vertex
+                        is not None
+                    ):
+
+                        add_vertex_to_walk(
+                            clicked_vertex
+                        )
+
+                        reset_algorithm_state()
+
+
+                # =================================
+                # ALGORITHM MODE
+                # =================================
+
+                elif (
+                    current_mode
+                    ==
+                    ALGORITHM_MODE
+                ):
+
+                    # Algorithm Mode is controlled
+                    # with SPACE instead of clicks.
+                    pass
+
+
+    # =====================================================
+    # DRAW
+    # =====================================================
 
     screen.fill(
         BACKGROUND
@@ -423,14 +1920,59 @@ while running:
 
     draw_grid()
 
-    # Draw edges before vertices
     draw_edges()
+
+
+    # ---------------------------------
+    # Normal Walk visualization
+    # ---------------------------------
+
+    if (
+        current_mode
+        !=
+        ALGORITHM_MODE
+    ):
+
+        draw_walk()
+
+
+    # ---------------------------------
+    # Algorithm visualization
+    # ---------------------------------
+
+    draw_algorithm_path()
+
+    draw_closed_subwalk()
+
+
+    # ---------------------------------
+    # Vertices
+    # ---------------------------------
 
     draw_vertices()
 
+
+    # ---------------------------------
+    # UI
+    # ---------------------------------
+
+    draw_mode_display()
+
+    draw_walk_display()
+
+    draw_algorithm_display()
+
+
+    # Context menu goes last so it
+    # appears on top of everything.
+    draw_context_menu()
+
+
     pygame.display.flip()
 
-    clock.tick(60)
+    clock.tick(
+        60
+    )
 
 
 pygame.quit()
