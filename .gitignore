@@ -3,6 +3,11 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# PyInstaller
+build/
+dist/
+*.spec
+
 # C extensions
 *.so
 
