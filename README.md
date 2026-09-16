@@ -1,21 +1,72 @@
-
 # Graph Theory Visualizer
 
 An interactive graph theory visualizer built with Python and Pygame.
 
-The program allows users to create and edit graphs, construct valid walks, and visually step through a graph theory algorithm that removes closed subwalks until the remaining walk becomes either a path or a cycle.
+Create graphs, build valid walks, and step through an algorithm that removes closed subwalks until the result is a path or cycle.
 
-This project was built as both a learning tool and a way to visualize graph theory concepts that are normally shown only on paper.
+## How to Use
 
----
+### 1. Edit Graph
 
-## Features
-
-### Interactive Graph Editor
-
-- Click empty grid locations to create vertices
-- Vertices automatically snap to the grid
-- Vertices are labeled:
+Press:
 
 ```text
-a, b, c, ... z, A, B, C, ... Z
+1
+
+Controls:
+
+Left click empty space → create vertex
+Click two vertices → create edge
+Click the same two vertices again → remove edge
+Hover over a vertex + press X → delete vertex
+Right click → open menu
+2. Build a Walk
+
+Press:
+
+2
+
+Then click connected vertices in order.
+
+Example:
+
+W = a -> b -> c -> d -> b -> e
+
+Controls:
+
+Backspace = remove last step
+C         = clear walk
+
+The program only allows valid moves along existing edges.
+
+3. Run Algorithm
+
+Press:
+
+3
+
+Then press:
+
+SPACE
+
+to move through the algorithm one step at a time.
+
+The program displays:
+
+W = original walk
+P = current walk
+C = shortest closed subwalk
+
+The algorithm stops when P becomes either a path or a cycle.
+
+Quick Controls
+Key	Action
+1	Edit Graph
+2	Build Walk
+3	Run Algorithm
+Space	Next algorithm step
+X	Delete hovered vertex
+Backspace	Undo walk step
+C	Clear walk
+Right Click	Open menu
+Esc	Cancel / close menu
