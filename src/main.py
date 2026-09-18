@@ -7,6 +7,10 @@ from algorithm1 import (
     remove_closed_subwalk
 )
 
+from bipartite import (
+    get_bipartite_coloring
+)
+
 
 # =========================================================
 # SETUP
@@ -81,6 +85,23 @@ CLOSED_WALK_COLOR = (255, 90, 70)
 
 
 # =========================================================
+# BIPARTITE COLORS
+# =========================================================
+
+BIPARTITE_COLOR_0 = (90, 170, 255)
+
+BIPARTITE_COLOR_1 = (255, 150, 90)
+
+POPUP_BACKGROUND = (20, 20, 20)
+
+POPUP_BORDER = (230, 230, 230)
+
+SUCCESS_COLOR = (100, 230, 130)
+
+FAIL_COLOR = (255, 100, 100)
+
+
+# =========================================================
 # SETTINGS
 # =========================================================
 
@@ -88,7 +109,7 @@ GRID_SIZE = 50
 
 VERTEX_RADIUS = 22
 
-MENU_WIDTH = 200
+MENU_WIDTH = 220
 
 MENU_ITEM_HEIGHT = 42
 
@@ -102,6 +123,8 @@ EDIT_MODE = "EDIT GRAPH"
 WALK_MODE = "BUILD WALK"
 
 ALGORITHM_MODE = "RUN ALGORITHM"
+
+CHECK_BIPARTITE_MODE = "CHECK IF BIPARTITE"
 
 current_mode = EDIT_MODE
 
@@ -127,7 +150,7 @@ walk = []
 
 
 # =========================================================
-# ALGORITHM DATA
+# ALGORITHM 1 DATA
 # =========================================================
 
 algorithm_path = []
@@ -137,6 +160,19 @@ algorithm_closed = None
 algorithm_phase = "IDLE"
 
 algorithm_message = ""
+
+
+# =========================================================
+# BIPARTITE DATA
+# =========================================================
+
+bipartite_colors = {}
+
+bipartite_message = ""
+
+bipartite_message_color = WHITE
+
+bipartite_message_until = 0
 
 
 # =========================================================
@@ -153,6 +189,7 @@ menu_items = [
     "EDIT GRAPH",
     "BUILD WALK",
     "RUN ALGORITHM",
+    "CHECK IF BIPARTITE",
     "RESET GRAPH"
 ]
 
@@ -177,7 +214,6 @@ def get_vertex_label(index):
             ord("A") + (index - 26)
         )
 
-    # Backup after 52 vertices
     return f"V{index + 1}"
 
 
@@ -300,6 +336,23 @@ def reset_algorithm_state():
 
 
 # =========================================================
+# RESET BIPARTITE STATE
+# =========================================================
+
+def reset_bipartite_state():
+
+    global bipartite_colors
+    global bipartite_message
+    global bipartite_message_until
+
+    bipartite_colors = {}
+
+    bipartite_message = ""
+
+    bipartite_message_until = 0
+
+
+# =========================================================
 # ADD VERTEX
 # =========================================================
 
@@ -334,6 +387,8 @@ def add_vertex(x, y):
     vertices.append(
         vertex
     )
+
+    reset_bipartite_state()
 
     print(
         f"Created vertex {label} "
@@ -392,10 +447,11 @@ def delete_vertex(vertex_index):
         vertex_index
     )
 
-    # Existing walk is no longer reliable
     walk.clear()
 
     reset_algorithm_state()
+
+    reset_bipartite_state()
 
     selected_vertex = None
 
@@ -462,8 +518,7 @@ def toggle_edge(vertex1, vertex2):
         return
 
     # ---------------------------------
-    # If edge already exists:
-    # remove it
+    # Remove existing edge
     # ---------------------------------
 
     for edge in edges:
@@ -491,6 +546,8 @@ def toggle_edge(vertex1, vertex2):
             walk.clear()
 
             reset_algorithm_state()
+
+            reset_bipartite_state()
 
             label1 = vertices[
                 vertex1
@@ -523,6 +580,8 @@ def toggle_edge(vertex1, vertex2):
     walk.clear()
 
     reset_algorithm_state()
+
+    reset_bipartite_state()
 
     label1 = vertices[
         vertex1
@@ -633,9 +692,6 @@ def start_algorithm():
 
     # ---------------------------------
     # P := W
-    #
-    # Convert vertex indexes into labels
-    # before sending data to algorithm.
     # ---------------------------------
 
     algorithm_path = [
@@ -665,6 +721,7 @@ def start_algorithm():
         )
     )
 
+
 def next_algorithm_step():
 
     global algorithm_path
@@ -688,12 +745,16 @@ def next_algorithm_step():
     if algorithm_phase == "CHECK":
 
         # ---------------------------------
-        # STOP IF P IS A PATH
+        # Stop if P is a path
         # ---------------------------------
 
-        if is_path(algorithm_path):
+        if is_path(
+            algorithm_path
+        ):
 
-            algorithm_phase = "FINISHED"
+            algorithm_phase = (
+                "FINISHED"
+            )
 
             algorithm_closed = None
 
@@ -719,12 +780,16 @@ def next_algorithm_step():
 
 
         # ---------------------------------
-        # STOP IF P IS A CYCLE
+        # Stop if P is a cycle
         # ---------------------------------
 
-        if is_cycle(algorithm_path):
+        if is_cycle(
+            algorithm_path
+        ):
 
-            algorithm_phase = "FINISHED"
+            algorithm_phase = (
+                "FINISHED"
+            )
 
             algorithm_closed = None
 
@@ -750,8 +815,7 @@ def next_algorithm_step():
 
 
         # ---------------------------------
-        # OTHERWISE FIND SHORTEST
-        # CLOSED SUBWALK C
+        # Find shortest closed subwalk
         # ---------------------------------
 
         algorithm_closed = (
@@ -762,7 +826,9 @@ def next_algorithm_step():
 
         if algorithm_closed is None:
 
-            algorithm_phase = "FINISHED"
+            algorithm_phase = (
+                "FINISHED"
+            )
 
             algorithm_message = (
                 "No closed subwalk found."
@@ -770,7 +836,9 @@ def next_algorithm_step():
 
             return
 
-        algorithm_phase = "SHOW_C"
+        algorithm_phase = (
+            "SHOW_C"
+        )
 
         algorithm_message = (
             "Found shortest closed "
@@ -789,8 +857,6 @@ def next_algorithm_step():
 
     # =====================================================
     # REMOVE C
-    #
-    # P := P ⊖ C
     # =====================================================
 
     elif algorithm_phase == "SHOW_C":
@@ -831,6 +897,104 @@ def next_algorithm_step():
             "Algorithm already finished."
         )
 
+
+# =========================================================
+# ALGORITHM 2: BIPARTITE CHECK
+# =========================================================
+
+def build_adjacency_graph():
+
+    graph = {}
+
+    for index, vertex in enumerate(
+        vertices
+    ):
+
+        label = vertex["label"]
+
+        graph[label] = []
+
+        for neighbor in range(
+            len(vertices)
+        ):
+
+            if edge_exists(
+                index,
+                neighbor
+            ):
+
+                graph[label].append(
+                    vertices[neighbor]["label"]
+                )
+
+    return graph
+
+
+def check_current_graph_bipartite():
+
+    global bipartite_colors
+    global bipartite_message
+    global bipartite_message_color
+    global bipartite_message_until
+
+    graph = build_adjacency_graph()
+
+    result, coloring = (
+        get_bipartite_coloring(
+            graph
+        )
+    )
+
+    if result:
+
+        # ---------------------------------
+        # Save the two-set coloring
+        # ---------------------------------
+
+        bipartite_colors = (
+            coloring
+        )
+
+        bipartite_message = (
+            "Graph is BIPARTITE"
+        )
+
+        bipartite_message_color = (
+            SUCCESS_COLOR
+        )
+
+        print(
+            "The graph IS bipartite."
+        )
+
+    else:
+
+        # ---------------------------------
+        # IMPORTANT:
+        # No coloring for failed graph
+        # ---------------------------------
+
+        bipartite_colors = {}
+
+        bipartite_message = (
+            "Graph is NOT bipartite"
+        )
+
+        bipartite_message_color = (
+            FAIL_COLOR
+        )
+
+        print(
+            "The graph is NOT bipartite."
+        )
+
+    # Popup stays visible for 3 seconds
+    bipartite_message_until = (
+        pygame.time.get_ticks()
+        + 3000
+    )
+
+
 # =========================================================
 # RESET GRAPH
 # =========================================================
@@ -851,6 +1015,8 @@ def reset_graph():
     next_vertex_number = 0
 
     reset_algorithm_state()
+
+    reset_bipartite_state()
 
     print(
         "Graph reset."
@@ -878,11 +1044,25 @@ def set_mode(new_mode):
         f"{current_mode}"
     )
 
-    # Every time Algorithm Mode is entered,
-    # start again from P := W
+    # ---------------------------------
+    # Algorithm 1
+    # ---------------------------------
+
     if new_mode == ALGORITHM_MODE:
 
         start_algorithm()
+
+    # ---------------------------------
+    # Algorithm 2
+    # ---------------------------------
+
+    elif (
+        new_mode
+        ==
+        CHECK_BIPARTITE_MODE
+    ):
+
+        check_current_graph_bipartite()
 
 
 # =========================================================
@@ -982,7 +1162,11 @@ def draw_walk():
 
 def draw_algorithm_path():
 
-    if current_mode != ALGORITHM_MODE:
+    if (
+        current_mode
+        !=
+        ALGORITHM_MODE
+    ):
 
         return
 
@@ -1047,7 +1231,11 @@ def draw_algorithm_path():
 
 def draw_closed_subwalk():
 
-    if current_mode != ALGORITHM_MODE:
+    if (
+        current_mode
+        !=
+        ALGORITHM_MODE
+    ):
 
         return
 
@@ -1137,12 +1325,50 @@ def draw_vertices():
 
         label = vertex["label"]
 
+
+        # ---------------------------------
+        # Determine fill color
+        # ---------------------------------
+
+        fill_color = (
+            VERTEX_COLOR
+        )
+
+        if (
+            current_mode
+            ==
+            CHECK_BIPARTITE_MODE
+        ):
+
+            if label in bipartite_colors:
+
+                if (
+                    bipartite_colors[label]
+                    == 0
+                ):
+
+                    fill_color = (
+                        BIPARTITE_COLOR_0
+                    )
+
+                else:
+
+                    fill_color = (
+                        BIPARTITE_COLOR_1
+                    )
+
+
+        # ---------------------------------
+        # Draw vertex fill
+        # ---------------------------------
+
         pygame.draw.circle(
             screen,
-            VERTEX_COLOR,
+            fill_color,
             (x, y),
             VERTEX_RADIUS
         )
+
 
         # ---------------------------------
         # Border
@@ -1156,7 +1382,11 @@ def draw_vertices():
 
             border_width = 5
 
-        elif index == hovered_vertex:
+        elif (
+            index == hovered_vertex
+            and
+            current_mode == EDIT_MODE
+        ):
 
             border_color = (
                 HOVER_COLOR
@@ -1172,6 +1402,7 @@ def draw_vertices():
 
             border_width = 2
 
+
         pygame.draw.circle(
             screen,
             border_color,
@@ -1179,6 +1410,7 @@ def draw_vertices():
             VERTEX_RADIUS,
             border_width
         )
+
 
         # ---------------------------------
         # Label
@@ -1217,8 +1449,10 @@ def draw_mode_display():
         (15, 15)
     )
 
-    # Different instructions depending
-    # on current mode
+
+    # ---------------------------------
+    # Edit Mode
+    # ---------------------------------
 
     if current_mode == EDIT_MODE:
 
@@ -1227,6 +1461,11 @@ def draw_mode_display():
             "   |   Hover + X Delete"
             "   |   Right Click Menu"
         )
+
+
+    # ---------------------------------
+    # Walk Mode
+    # ---------------------------------
 
     elif current_mode == WALK_MODE:
 
@@ -1237,7 +1476,16 @@ def draw_mode_display():
             "   |   1 Edit   3 Algorithm"
         )
 
-    else:
+
+    # ---------------------------------
+    # Algorithm 1 Mode
+    # ---------------------------------
+
+    elif (
+        current_mode
+        ==
+        ALGORITHM_MODE
+    ):
 
         instructions = (
             "SPACE = Next Algorithm Step"
@@ -1245,6 +1493,29 @@ def draw_mode_display():
             "   |   2 Walk"
             "   |   Right Click Menu"
         )
+
+
+    # ---------------------------------
+    # Bipartite Mode
+    # ---------------------------------
+
+    elif (
+        current_mode
+        ==
+        CHECK_BIPARTITE_MODE
+    ):
+
+        instructions = (
+            "Algorithm 2: Bipartite Check"
+            "   |   Right Click Menu"
+            "   |   1 Edit"
+        )
+
+
+    else:
+
+        instructions = ""
+
 
     help_text = ui_font.render(
         instructions,
@@ -1300,14 +1571,19 @@ def draw_walk_display():
 
 
 # =========================================================
-# DRAW ALGORITHM DISPLAY
+# DRAW ALGORITHM 1 DISPLAY
 # =========================================================
 
 def draw_algorithm_display():
 
-    if current_mode != ALGORITHM_MODE:
+    if (
+        current_mode
+        !=
+        ALGORITHM_MODE
+    ):
 
         return
+
 
     # ---------------------------------
     # P
@@ -1328,6 +1604,7 @@ def draw_algorithm_display():
         path_text = (
             "P = empty"
         )
+
 
     rendered_path = ui_font.render(
         path_text,
@@ -1361,6 +1638,7 @@ def draw_algorithm_display():
             "C = none"
         )
 
+
     rendered_closed = ui_font.render(
         closed_text,
         True,
@@ -1374,7 +1652,7 @@ def draw_algorithm_display():
 
 
     # ---------------------------------
-    # Current explanation
+    # Explanation
     # ---------------------------------
 
     message = ui_font.render(
@@ -1386,6 +1664,104 @@ def draw_algorithm_display():
     screen.blit(
         message,
         (15, 165)
+    )
+
+
+# =========================================================
+# DRAW BIPARTITE POPUP
+# =========================================================
+
+def draw_bipartite_popup():
+
+    if bipartite_message == "":
+
+        return
+
+    if (
+        pygame.time.get_ticks()
+        >
+        bipartite_message_until
+    ):
+
+        return
+
+
+    text = ui_font.render(
+        bipartite_message,
+        True,
+        bipartite_message_color
+    )
+
+
+    padding_x = 30
+
+    padding_y = 18
+
+
+    box_width = (
+        text.get_width()
+        +
+        padding_x * 2
+    )
+
+    box_height = (
+        text.get_height()
+        +
+        padding_y * 2
+    )
+
+
+    box_x = (
+        WIDTH // 2
+        -
+        box_width // 2
+    )
+
+    box_y = 100
+
+
+    popup_rect = pygame.Rect(
+        box_x,
+        box_y,
+        box_width,
+        box_height
+    )
+
+
+    # ---------------------------------
+    # Popup background
+    # ---------------------------------
+
+    pygame.draw.rect(
+        screen,
+        POPUP_BACKGROUND,
+        popup_rect
+    )
+
+
+    # ---------------------------------
+    # Popup border
+    # ---------------------------------
+
+    pygame.draw.rect(
+        screen,
+        POPUP_BORDER,
+        popup_rect,
+        2
+    )
+
+
+    # ---------------------------------
+    # Popup text
+    # ---------------------------------
+
+    text_rect = text.get_rect(
+        center=popup_rect.center
+    )
+
+    screen.blit(
+        text,
+        text_rect
     )
 
 
@@ -1424,15 +1800,18 @@ def draw_context_menu():
 
         return
 
+
     mouse_x, mouse_y = (
         pygame.mouse.get_pos()
     )
+
 
     total_height = (
         len(menu_items)
         *
         MENU_ITEM_HEIGHT
     )
+
 
     # ---------------------------------
     # Background
@@ -1448,6 +1827,7 @@ def draw_context_menu():
             total_height
         )
     )
+
 
     # ---------------------------------
     # Border
@@ -1465,6 +1845,7 @@ def draw_context_menu():
         2
     )
 
+
     # ---------------------------------
     # Menu items
     # ---------------------------------
@@ -1479,12 +1860,14 @@ def draw_context_menu():
             index * MENU_ITEM_HEIGHT
         )
 
+
         item_rect = pygame.Rect(
             menu_x,
             item_y,
             MENU_WIDTH,
             MENU_ITEM_HEIGHT
         )
+
 
         if item_rect.collidepoint(
             mouse_x,
@@ -1497,11 +1880,13 @@ def draw_context_menu():
                 item_rect
             )
 
+
         text = menu_font.render(
             item,
             True,
             WHITE
         )
+
 
         screen.blit(
             text,
@@ -1524,6 +1909,7 @@ def handle_menu_click(x, y):
 
         return False
 
+
     for index, item in enumerate(
         menu_items
     ):
@@ -1537,10 +1923,12 @@ def handle_menu_click(x, y):
             MENU_ITEM_HEIGHT
         )
 
+
         if item_rect.collidepoint(
             x,
             y
         ):
+
 
             if item == "EDIT GRAPH":
 
@@ -1548,11 +1936,13 @@ def handle_menu_click(x, y):
                     EDIT_MODE
                 )
 
+
             elif item == "BUILD WALK":
 
                 set_mode(
                     WALK_MODE
                 )
+
 
             elif item == "RUN ALGORITHM":
 
@@ -1560,15 +1950,29 @@ def handle_menu_click(x, y):
                     ALGORITHM_MODE
                 )
 
+
+            elif (
+                item
+                ==
+                "CHECK IF BIPARTITE"
+            ):
+
+                set_mode(
+                    CHECK_BIPARTITE_MODE
+                )
+
+
             elif item == "RESET GRAPH":
 
                 reset_graph()
 
                 menu_open = False
 
+
             return True
 
-    # Clicking outside menu closes it
+
+    # Clicked outside menu
     menu_open = False
 
     return False
@@ -1584,6 +1988,7 @@ running = True
 while running:
 
     for event in pygame.event.get():
+
 
         # =================================================
         # QUIT
@@ -1624,7 +2029,7 @@ while running:
 
 
             # ---------------------------------
-            # 3 = Algorithm Mode
+            # 3 = Algorithm 1 Mode
             # ---------------------------------
 
             elif event.key == pygame.K_3:
@@ -1635,7 +2040,7 @@ while running:
 
 
             # ---------------------------------
-            # SPACE = next algorithm step
+            # SPACE = next Algorithm 1 step
             # ---------------------------------
 
             elif event.key == pygame.K_SPACE:
@@ -1651,8 +2056,6 @@ while running:
 
             # ---------------------------------
             # X = delete hovered vertex
-            #
-            # Only while editing
             # ---------------------------------
 
             elif event.key == pygame.K_x:
@@ -1667,12 +2070,14 @@ while running:
                         pygame.mouse.get_pos()
                     )
 
+
                     hovered_vertex = (
                         get_vertex_at_position(
                             mouse_x,
                             mouse_y
                         )
                     )
+
 
                     if (
                         hovered_vertex
@@ -1883,6 +2288,7 @@ while running:
                         )
                     )
 
+
                     if (
                         clicked_vertex
                         is not None
@@ -1905,8 +2311,22 @@ while running:
                     ALGORITHM_MODE
                 ):
 
-                    # Algorithm Mode is controlled
-                    # with SPACE instead of clicks.
+                    # Algorithm 1 uses SPACE
+                    pass
+
+
+                # =================================
+                # BIPARTITE MODE
+                # =================================
+
+                elif (
+                    current_mode
+                    ==
+                    CHECK_BIPARTITE_MODE
+                ):
+
+                    # Result is calculated as soon
+                    # as this mode is selected.
                     pass
 
 
@@ -1918,26 +2338,32 @@ while running:
         BACKGROUND
     )
 
+
     draw_grid()
+
 
     draw_edges()
 
 
     # ---------------------------------
-    # Normal Walk visualization
+    # Normal walk visualization
     # ---------------------------------
 
     if (
         current_mode
         !=
         ALGORITHM_MODE
+        and
+        current_mode
+        !=
+        CHECK_BIPARTITE_MODE
     ):
 
         draw_walk()
 
 
     # ---------------------------------
-    # Algorithm visualization
+    # Algorithm 1 visualization
     # ---------------------------------
 
     draw_algorithm_path()
@@ -1958,17 +2384,35 @@ while running:
 
     draw_mode_display()
 
-    draw_walk_display()
+
+    if (
+        current_mode
+        !=
+        CHECK_BIPARTITE_MODE
+    ):
+
+        draw_walk_display()
+
 
     draw_algorithm_display()
 
 
-    # Context menu goes last so it
-    # appears on top of everything.
+    # ---------------------------------
+    # Bipartite popup
+    # ---------------------------------
+
+    draw_bipartite_popup()
+
+
+    # ---------------------------------
+    # Context menu always last
+    # ---------------------------------
+
     draw_context_menu()
 
 
     pygame.display.flip()
+
 
     clock.tick(
         60
