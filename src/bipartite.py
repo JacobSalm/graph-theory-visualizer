@@ -10,63 +10,72 @@ def get_bipartite_coloring(graph):
     Check whether a graph is bipartite.
 
     Returns:
+
         (True, color_map)
-            if graph is bipartite
+
+    if bipartite.
+
+    Returns:
 
         (False, {})
-            if graph is not bipartite
 
-    color_map assigns each vertex either:
-        0 or 1
+    otherwise.
     """
 
     color = {}
 
     for vertex in graph:
 
-        # Handle disconnected graphs
-        if vertex not in color:
+        if vertex in color:
 
-            color[vertex] = 0
+            continue
 
-            queue = deque([
-                vertex
-            ])
+        color[vertex] = 0
 
-            while queue:
+        queue = deque([
+            vertex
+        ])
 
-                current = queue.popleft()
+        while queue:
 
-                for neighbor in graph[current]:
+            current = (
+                queue.popleft()
+            )
 
-                    # Not colored yet
-                    if neighbor not in color:
+            for neighbor in graph[
+                current
+            ]:
 
-                        color[neighbor] = (
-                            1 - color[current]
-                        )
+                if neighbor not in color:
 
-                        queue.append(
-                            neighbor
-                        )
-
-                    # Same color on both sides
-                    # means NOT bipartite
-                    elif (
-                        color[neighbor]
-                        ==
+                    color[neighbor] = (
+                        1
+                        -
                         color[current]
-                    ):
+                    )
 
-                        return False, {}
+                    queue.append(
+                        neighbor
+                    )
 
-    return True, color
+                elif (
+                    color[neighbor]
+                    ==
+                    color[current]
+                ):
+
+                    return (
+                        False,
+                        {}
+                    )
+
+    return (
+        True,
+        color
+    )
 
 
 def is_bipartite(graph):
-    """
-    Simple True / False version.
-    """
 
     result, _ = (
         get_bipartite_coloring(
