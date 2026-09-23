@@ -5,22 +5,9 @@
 from collections import deque
 
 
-def get_bipartite_coloring(graph):
-    """
-    Check whether a graph is bipartite.
-
-    Returns:
-
-        (True, color_map)
-
-    if bipartite.
-
-    Returns:
-
-        (False, {})
-
-    otherwise.
-    """
+def get_bipartite_coloring(
+    graph
+):
 
     color = {}
 
@@ -30,11 +17,13 @@ def get_bipartite_coloring(graph):
 
             continue
 
-        color[vertex] = 0
-
-        queue = deque([
+        color[
             vertex
-        ])
+        ] = 0
+
+        queue = deque(
+            [vertex]
+        )
 
         while queue:
 
@@ -42,16 +31,23 @@ def get_bipartite_coloring(graph):
                 queue.popleft()
             )
 
-            for neighbor in graph[
-                current
-            ]:
+            for neighbor in (
+                graph[current]
+            ):
 
-                if neighbor not in color:
+                if (
+                    neighbor
+                    not in color
+                ):
 
-                    color[neighbor] = (
+                    color[
+                        neighbor
+                    ] = (
                         1
                         -
-                        color[current]
+                        color[
+                            current
+                        ]
                     )
 
                     queue.append(
@@ -59,9 +55,13 @@ def get_bipartite_coloring(graph):
                     )
 
                 elif (
-                    color[neighbor]
+                    color[
+                        neighbor
+                    ]
                     ==
-                    color[current]
+                    color[
+                        current
+                    ]
                 ):
 
                     return (
@@ -75,7 +75,9 @@ def get_bipartite_coloring(graph):
     )
 
 
-def is_bipartite(graph):
+def is_bipartite(
+    graph
+):
 
     result, _ = (
         get_bipartite_coloring(
