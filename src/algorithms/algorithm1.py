@@ -4,6 +4,10 @@
 
 
 def is_path(walk):
+    """
+    A walk is a path if no vertex
+    appears more than once.
+    """
 
     return (
         len(walk)
@@ -17,9 +21,13 @@ def is_path(walk):
 # =========================================================
 
 def is_cycle(walk):
+    """
+    A cycle starts and ends at the
+    same vertex and has no repeated
+    interior vertices.
+    """
 
     if len(walk) < 4:
-
         return False
 
     if (
@@ -27,7 +35,6 @@ def is_cycle(walk):
         !=
         walk[-1]
     ):
-
         return False
 
     vertices = (
@@ -42,7 +49,7 @@ def is_cycle(walk):
 
 
 # =========================================================
-# SHORTEST CLOSED SUBWALK
+# FIND SHORTEST CLOSED SUBWALK
 # =========================================================
 
 def find_shortest_closed_subwalk(
@@ -87,12 +94,8 @@ def find_shortest_closed_subwalk(
                     shortest = {
 
                         "start": start,
-
                         "end": end,
-
-                        "walk": (
-                            closed_walk
-                        )
+                        "walk": closed_walk
                     }
 
     return shortest
@@ -120,12 +123,10 @@ def remove_closed_subwalk(
 
 
 # =========================================================
-# FULL ALGORITHM
+# RUN WHOLE ALGORITHM
 # =========================================================
 
-def run_algorithm(
-    walk
-):
+def run_algorithm(walk):
 
     path = walk.copy()
 
@@ -142,7 +143,6 @@ def run_algorithm(
         )
 
         if closed is None:
-
             break
 
         path = (
@@ -157,13 +157,12 @@ def run_algorithm(
 
 
 # =========================================================
-# VISUAL ALGORITHM SESSION
+# STEP-BY-STEP SESSION
 # =========================================================
 
 class Algorithm1Session:
 
     def __init__(self):
-
         self.reset()
 
 
@@ -188,12 +187,12 @@ class Algorithm1Session:
 
     def start(
         self,
-        vertex_labels,
+        vertex_ids,
         edge_ids
     ):
 
         self.path = (
-            vertex_labels.copy()
+            vertex_ids.copy()
         )
 
         self.path_edges = (
@@ -225,7 +224,7 @@ class Algorithm1Session:
 
 
     # =====================================================
-    # STEP
+    # NEXT STEP
     # =====================================================
 
     def step(self):
@@ -240,7 +239,7 @@ class Algorithm1Session:
 
 
         # =================================================
-        # CHECK
+        # CHECK P
         # =================================================
 
         if self.phase == "CHECK":
@@ -254,7 +253,6 @@ class Algorithm1Session:
                 )
 
                 self.closed = None
-
                 self.closed_edges = []
 
                 self.message = (
@@ -274,7 +272,6 @@ class Algorithm1Session:
                 )
 
                 self.closed = None
-
                 self.closed_edges = []
 
                 self.message = (
@@ -305,6 +302,7 @@ class Algorithm1Session:
 
                 return
 
+
             start = (
                 self.closed[
                     "start"
@@ -316,9 +314,6 @@ class Algorithm1Session:
                     "end"
                 ]
             )
-
-            # Exact physical edges
-            # used by C.
 
             self.closed_edges = (
                 self.path_edges[
@@ -343,7 +338,11 @@ class Algorithm1Session:
         # REMOVE C
         # =================================================
 
-        if self.phase == "SHOW_C":
+        if (
+            self.phase
+            ==
+            "SHOW_C"
+        ):
 
             start = (
                 self.closed[
@@ -379,7 +378,9 @@ class Algorithm1Session:
 
             self.closed_edges = []
 
-            self.phase = "CHECK"
+            self.phase = (
+                "CHECK"
+            )
 
             self.message = (
                 "P := P minus C. "
@@ -389,11 +390,11 @@ class Algorithm1Session:
             return
 
 
-        # =================================================
-        # FINISHED
-        # =================================================
-
-        if self.phase == "FINISHED":
+        if (
+            self.phase
+            ==
+            "FINISHED"
+        ):
 
             self.message = (
                 "Algorithm already finished."

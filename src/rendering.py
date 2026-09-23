@@ -3,75 +3,32 @@
 # =========================================================
 
 import math
-
 import pygame
 
 
 class Renderer:
 
-    # =====================================================
-    # COLORS
-    # =====================================================
+    BACKGROUND = (30, 30, 30)
 
-    BACKGROUND = (
-        30,
-        30,
-        30
-    )
+    GRID_COLOR = (50, 50, 50)
 
-    GRID_COLOR = (
-        50,
-        50,
-        50
-    )
+    VERTEX_COLOR = (230, 230, 230)
 
-    VERTEX_COLOR = (
-        230,
-        230,
-        230
-    )
+    TEXT_COLOR = (20, 20, 20)
 
-    TEXT_COLOR = (
-        20,
-        20,
-        20
-    )
+    WHITE = (240, 240, 240)
 
-    BORDER_COLOR = (
-        255,
-        255,
-        255
-    )
+    BORDER_COLOR = (255, 255, 255)
 
-    EDGE_COLOR = (
-        180,
-        180,
-        180
-    )
+    EDGE_COLOR = (180, 180, 180)
 
-    SELECTED_COLOR = (
-        255,
-        220,
-        0
-    )
+    SELECTED_COLOR = (255, 220, 0)
 
-    HOVER_COLOR = (
-        255,
-        110,
-        110
-    )
+    HOVER_COLOR = (255, 110, 110)
 
-    WALK_EDGE_COLOR = (
-        70,
-        150,
-        255
-    )
+    WALK_EDGE_COLOR = (70, 150, 255)
 
-    WALK_VERTEX_COLOR = (
-        100,
-        180,
-        255
-    )
+    WALK_VERTEX_COLOR = (100, 180, 255)
 
     ALGORITHM_PATH_COLOR = (
         180,
@@ -98,10 +55,6 @@ class Renderer:
     )
 
 
-    # =====================================================
-    # SETUP
-    # =====================================================
-
     def __init__(
         self,
         screen,
@@ -117,9 +70,7 @@ class Renderer:
 
         self.height = height
 
-        self.grid_size = (
-            grid_size
-        )
+        self.grid_size = grid_size
 
         self.vertex_radius = (
             vertex_radius
@@ -134,9 +85,23 @@ class Renderer:
             )
         )
 
+        self.small_vertex_font = (
+            pygame.font.SysFont(
+                None,
+                20
+            )
+        )
+
+        self.name_font = (
+            pygame.font.SysFont(
+                None,
+                20
+            )
+        )
+
 
     # =====================================================
-    # BACKGROUND
+    # BACKGROUND / GRID
     # =====================================================
 
     def clear(self):
@@ -145,10 +110,6 @@ class Renderer:
             self.BACKGROUND
         )
 
-
-    # =====================================================
-    # GRID
-    # =====================================================
 
     def draw_grid(self):
 
@@ -180,7 +141,7 @@ class Renderer:
 
 
     # =====================================================
-    # PARALLEL EDGE OFFSETS
+    # MULTIEDGE CURVES
     # =====================================================
 
     def get_parallel_offsets(
@@ -189,28 +150,15 @@ class Renderer:
     ):
 
         if count == 1:
-
-            return [
-                0
-            ]
+            return [0]
 
         if count == 2:
-
-            return [
-                -24,
-                24
-            ]
+            return [-24, 24]
 
         if count == 3:
-
-            return [
-                -36,
-                0,
-                36
-            ]
+            return [-36, 0, 36]
 
         if count == 4:
-
             return [
                 -48,
                 -16,
@@ -220,10 +168,6 @@ class Renderer:
 
         return []
 
-
-    # =====================================================
-    # CURVE CREATION
-    # =====================================================
 
     def make_curve_points(
         self,
@@ -240,11 +184,9 @@ class Renderer:
             ]
 
         x1, y1 = start
-
         x2, y2 = end
 
         dx = x2 - x1
-
         dy = y2 - y1
 
         length = math.hypot(
@@ -297,48 +239,44 @@ class Renderer:
 
         points = []
 
-        for step in range(
-            31
-        ):
+        for step in range(31):
 
-            t = step / 30
+            t = (
+                step / 30
+            )
 
-            one_minus_t = (
+            inverse = (
                 1 - t
             )
 
             x = (
-                one_minus_t ** 2
-                * x1
+                inverse ** 2 * x1
 
                 +
 
                 2
-                * one_minus_t
+                * inverse
                 * t
                 * control_x
 
                 +
 
-                t ** 2
-                * x2
+                t ** 2 * x2
             )
 
             y = (
-                one_minus_t ** 2
-                * y1
+                inverse ** 2 * y1
 
                 +
 
                 2
-                * one_minus_t
+                * inverse
                 * t
                 * control_y
 
                 +
 
-                t ** 2
-                * y2
+                t ** 2 * y2
             )
 
             points.append(
@@ -352,7 +290,7 @@ class Renderer:
 
 
     # =====================================================
-    # EDGE RENDER INFORMATION
+    # EDGE RENDER DATA
     # =====================================================
 
     def get_edge_render_data(
@@ -366,10 +304,8 @@ class Renderer:
             graph.get_edge_ids()
         ):
 
-            edge = (
-                graph.get_edge(
-                    edge_id
-                )
+            edge = graph.get_edge(
+                edge_id
             )
 
             key = tuple(
@@ -382,12 +318,9 @@ class Renderer:
             )
 
             if key not in groups:
-
                 groups[key] = []
 
-            groups[
-                key
-            ].append(
+            groups[key].append(
                 edge_id
             )
 
@@ -477,7 +410,7 @@ class Renderer:
 
 
     # =====================================================
-    # EDGE HOVER DISTANCE
+    # EDGE HIT DETECTION
     # =====================================================
 
     def point_to_segment_distance(
@@ -490,13 +423,8 @@ class Renderer:
         y2
     ):
 
-        dx = (
-            x2 - x1
-        )
-
-        dy = (
-            y2 - y1
-        )
+        dx = x2 - x1
+        dy = y2 - y1
 
         if (
             dx == 0
@@ -532,15 +460,11 @@ class Renderer:
         )
 
         nearest_x = (
-            x1
-            +
-            t * dx
+            x1 + t * dx
         )
 
         nearest_y = (
-            y1
-            +
-            t * dy
+            y1 + t * dy
         )
 
         return math.hypot(
@@ -612,7 +536,7 @@ class Renderer:
 
 
     # =====================================================
-    # NORMAL EDGES
+    # EDGES
     # =====================================================
 
     def draw_edges(
@@ -657,10 +581,6 @@ class Renderer:
             )
 
 
-    # =====================================================
-    # EXACT EDGES
-    # =====================================================
-
     def draw_exact_edges(
         self,
         graph,
@@ -684,7 +604,6 @@ class Renderer:
             )
 
             if points is None:
-
                 continue
 
             pygame.draw.lines(
@@ -724,7 +643,6 @@ class Renderer:
             )
 
             if vertex is None:
-
                 continue
 
             pygame.draw.circle(
@@ -765,6 +683,142 @@ class Renderer:
 
 
     # =====================================================
+    # VERTEX LABEL
+    # =====================================================
+
+    def draw_vertex_label(
+        self,
+        vertex
+    ):
+
+        label = str(
+            vertex["label"]
+        )
+
+        x = vertex["x"]
+        y = vertex["y"]
+
+        normal_surface = (
+            self.vertex_font.render(
+                label,
+                True,
+                self.TEXT_COLOR
+            )
+        )
+
+        maximum_width = (
+            self.vertex_radius
+            * 2
+            -
+            8
+        )
+
+        # Short name fits inside circle.
+
+        if (
+            normal_surface.get_width()
+            <=
+            maximum_width
+        ):
+
+            rect = (
+                normal_surface.get_rect(
+                    center=(
+                        x,
+                        y
+                    )
+                )
+            )
+
+            self.screen.blit(
+                normal_surface,
+                rect
+            )
+
+            return
+
+
+        # Longer names:
+        # abbreviated in circle.
+
+        if len(label) > 3:
+
+            short_label = (
+                label[:3]
+                +
+                "…"
+            )
+
+        else:
+
+            short_label = label
+
+        short_surface = (
+            self.small_vertex_font.render(
+                short_label,
+                True,
+                self.TEXT_COLOR
+            )
+        )
+
+        short_rect = (
+            short_surface.get_rect(
+                center=(
+                    x,
+                    y
+                )
+            )
+        )
+
+        self.screen.blit(
+            short_surface,
+            short_rect
+        )
+
+
+        # Full name below vertex.
+
+        full_surface = (
+            self.name_font.render(
+                label,
+                True,
+                self.WHITE
+            )
+        )
+
+        full_rect = (
+            full_surface.get_rect(
+                center=(
+                    x,
+                    y
+                    +
+                    self.vertex_radius
+                    +
+                    15
+                )
+            )
+        )
+
+        background = (
+            full_rect.inflate(
+                8,
+                4
+            )
+        )
+
+        pygame.draw.rect(
+            self.screen,
+            self.BACKGROUND,
+            background
+        )
+
+        self.screen.blit(
+            full_surface,
+            full_rect
+        )
+
+
+    # =====================================================
     # VERTICES
     # =====================================================
 
@@ -777,7 +831,6 @@ class Renderer:
     ):
 
         if bipartite_colors is None:
-
             bipartite_colors = {}
 
         for vertex_id in (
@@ -791,26 +844,21 @@ class Renderer:
             )
 
             x = vertex["x"]
-
             y = vertex["y"]
-
-            label = vertex[
-                "label"
-            ]
 
             fill_color = (
                 self.VERTEX_COLOR
             )
 
             if (
-                label
+                vertex_id
                 in
                 bipartite_colors
             ):
 
                 if (
                     bipartite_colors[
-                        label
+                        vertex_id
                     ]
                     ==
                     0
@@ -832,6 +880,7 @@ class Renderer:
                 (x, y),
                 self.vertex_radius
             )
+
 
             if (
                 vertex_id
@@ -873,24 +922,6 @@ class Renderer:
                 border_width
             )
 
-            text = (
-                self.vertex_font.render(
-                    label,
-                    True,
-                    self.TEXT_COLOR
-                )
-            )
-
-            text_rect = (
-                text.get_rect(
-                    center=(
-                        x,
-                        y
-                    )
-                )
-            )
-
-            self.screen.blit(
-                text,
-                text_rect
+            self.draw_vertex_label(
+                vertex
             )

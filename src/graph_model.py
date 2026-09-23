@@ -12,60 +12,34 @@ class GraphModel:
     ):
 
         self.grid_size = grid_size
+        self.max_parallel_edges = max_parallel_edges
 
-        self.max_parallel_edges = (
-            max_parallel_edges
-        )
-
-        # Stable IDs:
-        #
-        # vertices = {
-        #     0: {
-        #         "id": 0,
-        #         "x": 100,
-        #         "y": 100,
-        #         "label": "a"
-        #     }
-        # }
-
+        # Stable IDs.
         self.vertices = {}
-
-        # edges = {
-        #     0: {
-        #         "id": 0,
-        #         "u": 0,
-        #         "v": 1
-        #     }
-        # }
-
         self.edges = {}
 
         self.next_vertex_id = 0
-
         self.next_edge_id = 0
-
         self.next_label_number = 0
 
 
     # =====================================================
-    # LABELS
+    # DEFAULT LABELS
     # =====================================================
 
-    def get_vertex_label(
+    def get_default_vertex_label(
         self,
         index
     ):
 
-        # a - z
+        # a-z
         if index < 26:
-
             return chr(
                 ord("a") + index
             )
 
-        # A - Z
+        # A-Z
         if index < 52:
-
             return chr(
                 ord("A")
                 +
@@ -73,6 +47,34 @@ class GraphModel:
             )
 
         return f"V{index + 1}"
+
+
+    def get_next_available_default_label(self):
+
+        existing_labels = {
+
+            vertex["label"]
+
+            for vertex
+            in self.vertices.values()
+        }
+
+        while True:
+
+            label = (
+                self.get_default_vertex_label(
+                    self.next_label_number
+                )
+            )
+
+            self.next_label_number += 1
+
+            if (
+                label
+                not in existing_labels
+            ):
+
+                return label
 
 
     # =====================================================
@@ -120,34 +122,13 @@ class GraphModel:
         )
 
         if vertex is None:
-
             return None
 
         return vertex["label"]
 
 
-    def get_vertex_id_by_label(
-        self,
-        label
-    ):
-
-        for vertex_id, vertex in (
-            self.vertices.items()
-        ):
-
-            if (
-                vertex["label"]
-                ==
-                label
-            ):
-
-                return vertex_id
-
-        return None
-
-
     # =====================================================
-    # VERTEX POSITION
+    # POSITION
     # =====================================================
 
     def position_is_valid(
@@ -246,23 +227,16 @@ class GraphModel:
         self.next_vertex_id += 1
 
         label = (
-            self.get_vertex_label(
-                self.next_label_number
-            )
+            self.get_next_available_default_label()
         )
-
-        self.next_label_number += 1
 
         self.vertices[
             vertex_id
         ] = {
 
             "id": vertex_id,
-
             "x": x,
-
             "y": y,
-
             "label": label
         }
 
@@ -270,6 +244,74 @@ class GraphModel:
             vertex_id,
             f"Created vertex {label} "
             f"at ({x}, {y})"
+        )
+
+
+    # =====================================================
+    # RENAME VERTEX
+    # =====================================================
+
+    def rename_vertex(
+        self,
+        vertex_id,
+        new_label
+    ):
+
+        vertex = self.get_vertex(
+            vertex_id
+        )
+
+        if vertex is None:
+
+            return (
+                False,
+                "Vertex no longer exists."
+            )
+
+        new_label = (
+            new_label.strip()
+        )
+
+        if new_label == "":
+
+            return (
+                False,
+                "Vertex name cannot be empty."
+            )
+
+        # Keep names unique so the
+        # displayed graph stays clear.
+
+        for other_id, other_vertex in (
+            self.vertices.items()
+        ):
+
+            if (
+                other_id != vertex_id
+                and
+                other_vertex["label"]
+                ==
+                new_label
+            ):
+
+                return (
+                    False,
+                    f'A vertex named "{new_label}" '
+                    f"already exists."
+                )
+
+        old_label = (
+            vertex["label"]
+        )
+
+        vertex["label"] = (
+            new_label
+        )
+
+        return (
+            True,
+            f'Renamed "{old_label}" '
+            f'to "{new_label}".'
         )
 
 
@@ -284,8 +326,7 @@ class GraphModel:
 
         if (
             vertex_id
-            not in
-            self.vertices
+            not in self.vertices
         ):
 
             return None
@@ -296,9 +337,6 @@ class GraphModel:
             ]["label"]
         )
 
-        # Find every edge attached
-        # to this vertex.
-
         edge_ids_to_delete = [
 
             edge_id
@@ -307,13 +345,9 @@ class GraphModel:
             in self.edges.items()
 
             if (
-                edge["u"]
-                ==
-                vertex_id
+                edge["u"] == vertex_id
                 or
-                edge["v"]
-                ==
-                vertex_id
+                edge["v"] == vertex_id
             )
         ]
 
@@ -373,7 +407,6 @@ class GraphModel:
         ):
 
             u = edge["u"]
-
             v = edge["v"]
 
             if (
@@ -436,11 +469,7 @@ class GraphModel:
         vertex2
     ):
 
-        if (
-            vertex1
-            ==
-            vertex2
-        ):
+        if vertex1 == vertex2:
 
             return (
                 None,
@@ -448,13 +477,9 @@ class GraphModel:
             )
 
         if (
-            vertex1
-            not in
-            self.vertices
+            vertex1 not in self.vertices
             or
-            vertex2
-            not in
-            self.vertices
+            vertex2 not in self.vertices
         ):
 
             return (
@@ -506,9 +531,7 @@ class GraphModel:
         ] = {
 
             "id": edge_id,
-
             "u": vertex1,
-
             "v": vertex2
         }
 
@@ -547,11 +570,9 @@ class GraphModel:
         )
 
         if edge is None:
-
             return None
 
         vertex1 = edge["u"]
-
         vertex2 = edge["v"]
 
         label1 = (
@@ -599,17 +620,12 @@ class GraphModel:
         )
 
         if edge is None:
-
             return False
 
         return (
-            edge["u"]
-            ==
-            vertex_id
+            edge["u"] == vertex_id
             or
-            edge["v"]
-            ==
-            vertex_id
+            edge["v"] == vertex_id
         )
 
 
@@ -624,31 +640,16 @@ class GraphModel:
         )
 
         if edge is None:
-
             return None
 
-        if (
-            edge["u"]
-            ==
-            vertex_id
-        ):
-
+        if edge["u"] == vertex_id:
             return edge["v"]
 
-        if (
-            edge["v"]
-            ==
-            vertex_id
-        ):
-
+        if edge["v"] == vertex_id:
             return edge["u"]
 
         return None
 
-
-    # =====================================================
-    # DEFAULT EDGE
-    # =====================================================
 
     def get_default_edge_between(
         self,
@@ -664,10 +665,9 @@ class GraphModel:
         )
 
         if not parallel_edges:
-
             return None
 
-        # First-created bridge.
+        # Bridge #1
         return parallel_edges[0]
 
 
@@ -707,68 +707,43 @@ class GraphModel:
 
 
     # =====================================================
-    # ADJACENCY
+    # ADJACENCY USING PERMANENT IDS
     # =====================================================
 
-    def to_adjacency_labels(
-        self
-    ):
+    def to_adjacency_ids(self):
 
-        graph = {}
+        adjacency = {
 
-        for vertex_id, vertex in (
-            self.vertices.items()
+            vertex_id: set()
+
+            for vertex_id
+            in self.vertices
+        }
+
+        for edge in (
+            self.edges.values()
         ):
 
-            label = (
-                vertex["label"]
+            u = edge["u"]
+            v = edge["v"]
+
+            adjacency[u].add(
+                v
             )
 
-            graph[label] = []
+            adjacency[v].add(
+                u
+            )
 
-            added = set()
+        return {
 
-            for edge in (
-                self.edges.values()
-            ):
+            vertex_id: list(
+                neighbors
+            )
 
-                neighbor = None
-
-                if (
-                    edge["u"]
-                    ==
-                    vertex_id
-                ):
-
-                    neighbor = edge["v"]
-
-                elif (
-                    edge["v"]
-                    ==
-                    vertex_id
-                ):
-
-                    neighbor = edge["u"]
-
-                if (
-                    neighbor is not None
-                    and
-                    neighbor not in added
-                ):
-
-                    added.add(
-                        neighbor
-                    )
-
-                    graph[
-                        label
-                    ].append(
-                        self.vertices[
-                            neighbor
-                        ]["label"]
-                    )
-
-        return graph
+            for vertex_id, neighbors
+            in adjacency.items()
+        }
 
 
     # =====================================================
@@ -778,11 +753,8 @@ class GraphModel:
     def reset(self):
 
         self.vertices.clear()
-
         self.edges.clear()
 
         self.next_vertex_id = 0
-
         self.next_edge_id = 0
-
         self.next_label_number = 0
