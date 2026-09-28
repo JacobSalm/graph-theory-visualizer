@@ -19,7 +19,13 @@ BIPARTITE_MODE = (
     "CHECK IF BIPARTITE"
 )
 
-RESET_ACTION = "RESET GRAPH"
+EULER_MODE = (
+    "CHECK EULER PROPERTY"
+)
+
+RESET_ACTION = (
+    "RESET GRAPH"
+)
 
 
 # =========================================================
@@ -107,6 +113,10 @@ class UI:
     )
 
 
+    # =====================================================
+    # SETUP
+    # =====================================================
+
     def __init__(
         self,
         screen,
@@ -119,6 +129,7 @@ class UI:
         self.width = width
 
         self.height = height
+
 
         self.ui_font = (
             pygame.font.SysFont(
@@ -150,10 +161,10 @@ class UI:
 
 
         # =================================================
-        # CONTEXT MENU
+        # MENU
         # =================================================
 
-        self.menu_width = 220
+        self.menu_width = 240
 
         self.menu_item_height = 42
 
@@ -162,6 +173,7 @@ class UI:
         self.menu_x = 0
 
         self.menu_y = 0
+
 
         self.menu_items = [
 
@@ -186,6 +198,11 @@ class UI:
             ),
 
             (
+                "CHECK EULER PROPERTY",
+                EULER_MODE
+            ),
+
+            (
                 "RESET GRAPH",
                 RESET_ACTION
             )
@@ -206,7 +223,7 @@ class UI:
 
 
         # =================================================
-        # TEXT INPUT
+        # RENAME INPUT
         # =================================================
 
         self.text_input_active = False
@@ -221,7 +238,7 @@ class UI:
 
 
     # =====================================================
-    # HELPER - FIT TEXT
+    # FIT TEXT
     # =====================================================
 
     def fit_text(
@@ -243,13 +260,17 @@ class UI:
 
             return text
 
+
         shortened = text
+
 
         while (
             shortened
             and
             font.size(
-                shortened + "…"
+                shortened
+                +
+                "…"
             )[0]
             >
             maximum_width
@@ -259,6 +280,7 @@ class UI:
                 shortened[:-1]
             )
 
+
         return (
             shortened
             +
@@ -267,7 +289,7 @@ class UI:
 
 
     # =====================================================
-    # CONTEXT MENU
+    # MENU
     # =====================================================
 
     def open_menu(
@@ -278,6 +300,7 @@ class UI:
 
         self.menu_open = True
 
+
         self.menu_x = min(
             x,
             self.width
@@ -285,11 +308,13 @@ class UI:
             self.menu_width
         )
 
+
         total_height = (
             len(self.menu_items)
             *
             self.menu_item_height
         )
+
 
         self.menu_y = min(
             y,
@@ -311,7 +336,9 @@ class UI:
     ):
 
         if not self.menu_open:
+
             return None
+
 
         for index, (
             text,
@@ -333,6 +360,7 @@ class UI:
                 )
             )
 
+
             if item_rect.collidepoint(
                 x,
                 y
@@ -342,6 +370,7 @@ class UI:
 
                 return action
 
+
         self.menu_open = False
 
         return None
@@ -350,17 +379,21 @@ class UI:
     def draw_context_menu(self):
 
         if not self.menu_open:
+
             return
+
 
         mouse_x, mouse_y = (
             pygame.mouse.get_pos()
         )
+
 
         total_height = (
             len(self.menu_items)
             *
             self.menu_item_height
         )
+
 
         pygame.draw.rect(
             self.screen,
@@ -373,6 +406,7 @@ class UI:
             )
         )
 
+
         pygame.draw.rect(
             self.screen,
             self.MENU_BORDER,
@@ -384,6 +418,7 @@ class UI:
             ),
             2
         )
+
 
         for index, (
             text,
@@ -400,6 +435,7 @@ class UI:
                 self.menu_item_height
             )
 
+
             item_rect = (
                 pygame.Rect(
                     self.menu_x,
@@ -408,6 +444,7 @@ class UI:
                     self.menu_item_height
                 )
             )
+
 
             if item_rect.collidepoint(
                 mouse_x,
@@ -420,6 +457,7 @@ class UI:
                     item_rect
                 )
 
+
             rendered = (
                 self.menu_font.render(
                     text,
@@ -427,6 +465,7 @@ class UI:
                     self.WHITE
                 )
             )
+
 
             self.screen.blit(
                 rendered,
@@ -438,7 +477,7 @@ class UI:
 
 
     # =====================================================
-    # MODE
+    # MODE DISPLAY
     # =====================================================
 
     def draw_mode(
@@ -454,6 +493,7 @@ class UI:
             )
         )
 
+
         self.screen.blit(
             mode_text,
             (
@@ -461,6 +501,7 @@ class UI:
                 15
             )
         )
+
 
         if (
             current_mode
@@ -475,6 +516,7 @@ class UI:
                 "   |   Right Click Menu"
             )
 
+
         elif (
             current_mode
             ==
@@ -487,6 +529,7 @@ class UI:
                 "   |   Backspace Undo"
                 "   |   C Clear"
             )
+
 
         elif (
             current_mode
@@ -501,6 +544,7 @@ class UI:
                 "   |   Right Click Menu"
             )
 
+
         elif (
             current_mode
             ==
@@ -513,9 +557,25 @@ class UI:
                 "   |   Right Click Menu"
             )
 
+
+        elif (
+            current_mode
+            ==
+            EULER_MODE
+        ):
+
+            instructions = (
+                "Euler cycle shown in green"
+                "   |   Numbers = traversal order"
+                "   |   1 Edit"
+                "   |   Right Click Menu"
+            )
+
+
         else:
 
             instructions = ""
+
 
         help_text = (
             self.small_font.render(
@@ -524,6 +584,7 @@ class UI:
                 self.SECONDARY_TEXT
             )
         )
+
 
         self.screen.blit(
             help_text,
@@ -535,7 +596,7 @@ class UI:
 
 
     # =====================================================
-    # WALK SUMMARY
+    # WALK
     # =====================================================
 
     def draw_walk(
@@ -550,6 +611,7 @@ class UI:
                 graph
             )
         )
+
 
         if labels:
 
@@ -567,6 +629,7 @@ class UI:
                 "W = empty"
             )
 
+
         walk_text = (
             self.fit_text(
                 walk_text,
@@ -574,6 +637,7 @@ class UI:
                 760
             )
         )
+
 
         text = (
             self.ui_font.render(
@@ -583,6 +647,7 @@ class UI:
             )
         )
 
+
         self.screen.blit(
             text,
             (
@@ -590,6 +655,7 @@ class UI:
                 75
             )
         )
+
 
         if show_steps:
 
@@ -600,7 +666,7 @@ class UI:
 
 
     # =====================================================
-    # WALK STEP PANEL
+    # WALK STEPS
     # =====================================================
 
     def draw_walk_steps(
@@ -623,18 +689,22 @@ class UI:
 
         max_steps = 12
 
+
         number_of_steps = (
             len(
                 walk.edge_ids
             )
         )
 
+
         visible_steps = min(
             number_of_steps,
             max_steps
         )
 
+
         extra_rows = 2
+
 
         if (
             number_of_steps
@@ -643,6 +713,7 @@ class UI:
         ):
 
             extra_rows += 1
+
 
         panel_height = (
             48
@@ -656,6 +727,7 @@ class UI:
             25
         )
 
+
         panel_rect = (
             pygame.Rect(
                 panel_x,
@@ -665,11 +737,13 @@ class UI:
             )
         )
 
+
         pygame.draw.rect(
             self.screen,
             self.POPUP_BACKGROUND,
             panel_rect
         )
+
 
         pygame.draw.rect(
             self.screen,
@@ -687,6 +761,7 @@ class UI:
             )
         )
 
+
         self.screen.blit(
             title,
             (
@@ -695,10 +770,6 @@ class UI:
             )
         )
 
-
-        # ---------------------------------
-        # No walk
-        # ---------------------------------
 
         if walk.is_empty():
 
@@ -721,21 +792,19 @@ class UI:
             return
 
 
-        # ---------------------------------
-        # Start vertex
-        # ---------------------------------
-
         start_name = (
             graph.get_vertex_label_by_id(
                 walk.vertex_ids[0]
             )
         )
 
+
         start_line = (
             "Start: "
             +
             str(start_name)
         )
+
 
         start_line = (
             self.fit_text(
@@ -745,6 +814,7 @@ class UI:
             )
         )
 
+
         rendered_start = (
             self.small_font.render(
                 start_line,
@@ -752,6 +822,7 @@ class UI:
                 self.WHITE
             )
         )
+
 
         self.screen.blit(
             rendered_start,
@@ -762,16 +833,13 @@ class UI:
         )
 
 
-        # ---------------------------------
-        # Decide which steps to show
-        # ---------------------------------
-
         start_step = max(
             0,
             number_of_steps
             -
             max_steps
         )
+
 
         current_y = (
             panel_y + 70
@@ -782,8 +850,7 @@ class UI:
 
             earlier = (
                 self.small_font.render(
-                    f"... {start_step} earlier "
-                    f"step(s)",
+                    f"... {start_step} earlier step(s)",
                     True,
                     self.SECONDARY_TEXT
                 )
@@ -799,10 +866,6 @@ class UI:
 
             current_y += 25
 
-
-        # ---------------------------------
-        # Individual steps
-        # ---------------------------------
 
         for step_index in range(
             start_step,
@@ -827,6 +890,7 @@ class UI:
                 ]
             )
 
+
             from_name = (
                 graph.get_vertex_label_by_id(
                     from_vertex
@@ -839,11 +903,13 @@ class UI:
                 )
             )
 
+
             bridge_number, bridge_total = (
                 graph.get_parallel_edge_number(
                     edge_id
                 )
             )
+
 
             step_text = (
                 f"{step_index + 1}. "
@@ -853,6 +919,7 @@ class UI:
                 f"{bridge_total}]"
             )
 
+
             step_text = (
                 self.fit_text(
                     step_text,
@@ -860,6 +927,7 @@ class UI:
                     panel_width - 24
                 )
             )
+
 
             rendered = (
                 self.small_font.render(
@@ -869,6 +937,7 @@ class UI:
                 )
             )
 
+
             self.screen.blit(
                 rendered,
                 (
@@ -877,11 +946,12 @@ class UI:
                 )
             )
 
+
             current_y += 25
 
 
     # =====================================================
-    # ALGORITHM DISPLAY
+    # ALGORITHM 1 DISPLAY
     # =====================================================
 
     def draw_algorithm(
@@ -900,6 +970,7 @@ class UI:
             in algorithm.path
         ]
 
+
         if path_labels:
 
             path_text = (
@@ -916,6 +987,7 @@ class UI:
                 "P = empty"
             )
 
+
         path_text = (
             self.fit_text(
                 path_text,
@@ -924,6 +996,7 @@ class UI:
             )
         )
 
+
         rendered_path = (
             self.ui_font.render(
                 path_text,
@@ -931,6 +1004,7 @@ class UI:
                 self.WHITE
             )
         )
+
 
         self.screen.blit(
             rendered_path,
@@ -958,6 +1032,7 @@ class UI:
                 ]
             ]
 
+
             closed_text = (
                 "C = "
                 +
@@ -972,6 +1047,7 @@ class UI:
                 "C = none"
             )
 
+
         closed_text = (
             self.fit_text(
                 closed_text,
@@ -980,6 +1056,7 @@ class UI:
             )
         )
 
+
         rendered_closed = (
             self.ui_font.render(
                 closed_text,
@@ -987,6 +1064,7 @@ class UI:
                 self.WHITE
             )
         )
+
 
         self.screen.blit(
             rendered_closed,
@@ -1005,6 +1083,7 @@ class UI:
             )
         )
 
+
         self.screen.blit(
             rendered_message,
             (
@@ -1012,6 +1091,313 @@ class UI:
                 165
             )
         )
+
+
+    # =====================================================
+    # EULER CYCLE PANEL
+    # =====================================================
+
+    def draw_euler_cycle(
+        self,
+        graph,
+        euler_result
+    ):
+
+        if euler_result is None:
+
+            return
+
+
+        vertices = (
+            euler_result[
+                "vertices"
+            ]
+        )
+
+        edges = (
+            euler_result[
+                "edges"
+            ]
+        )
+
+
+        panel_width = 360
+
+        panel_x = (
+            self.width
+            -
+            panel_width
+            -
+            15
+        )
+
+        panel_y = 85
+
+        max_steps = 13
+
+
+        step_count = len(
+            edges
+        )
+
+
+        visible_steps = min(
+            step_count,
+            max_steps
+        )
+
+
+        panel_height = (
+            85
+            +
+            visible_steps
+            *
+            25
+        )
+
+
+        if (
+            step_count
+            >
+            max_steps
+        ):
+
+            panel_height += 25
+
+
+        panel_rect = pygame.Rect(
+            panel_x,
+            panel_y,
+            panel_width,
+            panel_height
+        )
+
+
+        pygame.draw.rect(
+            self.screen,
+            self.POPUP_BACKGROUND,
+            panel_rect
+        )
+
+
+        pygame.draw.rect(
+            self.screen,
+            self.SUCCESS_COLOR,
+            panel_rect,
+            2
+        )
+
+
+        title = (
+            self.ui_font.render(
+                "EULER CYCLE",
+                True,
+                self.SUCCESS_COLOR
+            )
+        )
+
+
+        self.screen.blit(
+            title,
+            (
+                panel_x + 12,
+                panel_y + 10
+            )
+        )
+
+
+        if not vertices:
+
+            return
+
+
+        start_name = (
+            graph.get_vertex_label_by_id(
+                vertices[0]
+            )
+        )
+
+
+        start_text = (
+            self.small_font.render(
+                f"Start: {start_name}",
+                True,
+                self.WHITE
+            )
+        )
+
+
+        self.screen.blit(
+            start_text,
+            (
+                panel_x + 12,
+                panel_y + 43
+            )
+        )
+
+
+        # ---------------------------------
+        # No edges / trivial cycle
+        # ---------------------------------
+
+        if not edges:
+
+            trivial = (
+                self.small_font.render(
+                    "No edges to traverse.",
+                    True,
+                    self.SECONDARY_TEXT
+                )
+            )
+
+            self.screen.blit(
+                trivial,
+                (
+                    panel_x + 12,
+                    panel_y + 69
+                )
+            )
+
+            return
+
+
+        # ---------------------------------
+        # Keep latest/first steps visible
+        # ---------------------------------
+
+        start_index = 0
+
+
+        current_y = (
+            panel_y + 70
+        )
+
+
+        for step_index in range(
+            start_index,
+            min(
+                step_count,
+                max_steps
+            )
+        ):
+
+            from_vertex = (
+                vertices[
+                    step_index
+                ]
+            )
+
+            to_vertex = (
+                vertices[
+                    step_index + 1
+                ]
+            )
+
+            edge_id = (
+                edges[
+                    step_index
+                ]
+            )
+
+
+            from_name = (
+                graph.get_vertex_label_by_id(
+                    from_vertex
+                )
+            )
+
+            to_name = (
+                graph.get_vertex_label_by_id(
+                    to_vertex
+                )
+            )
+
+
+            bridge_number, bridge_total = (
+                graph.get_parallel_edge_number(
+                    edge_id
+                )
+            )
+
+
+            line = (
+                f"{step_index + 1}. "
+                f"{from_name} -> {to_name}"
+            )
+
+
+            if (
+                bridge_total is not None
+                and
+                bridge_total > 1
+            ):
+
+                line += (
+                    f" [bridge "
+                    f"{bridge_number}/"
+                    f"{bridge_total}]"
+                )
+
+
+            line = (
+                self.fit_text(
+                    line,
+                    self.small_font,
+                    panel_width - 24
+                )
+            )
+
+
+            rendered = (
+                self.small_font.render(
+                    line,
+                    True,
+                    self.WHITE
+                )
+            )
+
+
+            self.screen.blit(
+                rendered,
+                (
+                    panel_x + 12,
+                    current_y
+                )
+            )
+
+
+            current_y += 25
+
+
+        if (
+            step_count
+            >
+            max_steps
+        ):
+
+            remaining = (
+                step_count
+                -
+                max_steps
+            )
+
+
+            more = (
+                self.small_font.render(
+                    f"... +{remaining} more step(s)",
+                    True,
+                    self.SECONDARY_TEXT
+                )
+            )
+
+
+            self.screen.blit(
+                more,
+                (
+                    panel_x + 12,
+                    current_y
+                )
+            )
 
 
     # =====================================================
@@ -1029,6 +1415,7 @@ class UI:
             message
         )
 
+
         if success:
 
             self.popup_color = (
@@ -1040,6 +1427,7 @@ class UI:
             self.popup_color = (
                 self.FAIL_COLOR
             )
+
 
         self.popup_until = (
             pygame.time.get_ticks()
@@ -1065,6 +1453,7 @@ class UI:
 
             return
 
+
         if (
             pygame.time.get_ticks()
             >
@@ -1072,6 +1461,7 @@ class UI:
         ):
 
             return
+
 
         text = (
             self.ui_font.render(
@@ -1081,8 +1471,11 @@ class UI:
             )
         )
 
+
         padding_x = 30
+
         padding_y = 18
+
 
         box_width = (
             text.get_width()
@@ -1096,6 +1489,7 @@ class UI:
             padding_y * 2
         )
 
+
         box_x = (
             self.width // 2
             -
@@ -1104,14 +1498,14 @@ class UI:
 
         box_y = 100
 
-        popup_rect = (
-            pygame.Rect(
-                box_x,
-                box_y,
-                box_width,
-                box_height
-            )
+
+        popup_rect = pygame.Rect(
+            box_x,
+            box_y,
+            box_width,
+            box_height
         )
+
 
         pygame.draw.rect(
             self.screen,
@@ -1119,12 +1513,14 @@ class UI:
             popup_rect
         )
 
+
         pygame.draw.rect(
             self.screen,
             self.POPUP_BORDER,
             popup_rect,
             2
         )
+
 
         text_rect = (
             text.get_rect(
@@ -1134,6 +1530,7 @@ class UI:
             )
         )
 
+
         self.screen.blit(
             text,
             text_rect
@@ -1141,7 +1538,7 @@ class UI:
 
 
     # =====================================================
-    # RENAME TEXT INPUT
+    # RENAME INPUT
     # =====================================================
 
     def open_text_input(
@@ -1162,8 +1559,6 @@ class UI:
             initial_value
         )
 
-        # Typing immediately replaces
-        # the current/default name.
         self.text_input_select_all = True
 
 
@@ -1188,10 +1583,6 @@ class UI:
             return None
 
 
-        # ---------------------------------
-        # ENTER = SAVE
-        # ---------------------------------
-
         if (
             event.key
             in
@@ -1213,10 +1604,6 @@ class UI:
             )
 
 
-        # ---------------------------------
-        # ESC = CANCEL
-        # ---------------------------------
-
         if (
             event.key
             ==
@@ -1230,10 +1617,6 @@ class UI:
                 None
             )
 
-
-        # ---------------------------------
-        # CTRL + A
-        # ---------------------------------
 
         if (
             event.key
@@ -1251,10 +1634,6 @@ class UI:
 
             return None
 
-
-        # ---------------------------------
-        # BACKSPACE
-        # ---------------------------------
 
         if (
             event.key
@@ -1279,13 +1658,10 @@ class UI:
             return None
 
 
-        # ---------------------------------
-        # PRINTABLE CHARACTERS
-        # ---------------------------------
-
         character = (
             event.unicode
         )
+
 
         if (
             character
@@ -1293,13 +1669,12 @@ class UI:
             character.isprintable()
         ):
 
-            if (
-                self.text_input_select_all
-            ):
+            if self.text_input_select_all:
 
                 self.text_input_value = ""
 
                 self.text_input_select_all = False
+
 
             if (
                 len(
@@ -1313,6 +1688,7 @@ class UI:
                     character
                 )
 
+
         return None
 
 
@@ -1323,10 +1699,6 @@ class UI:
             return
 
 
-        # ---------------------------------
-        # Dark modal overlay
-        # ---------------------------------
-
         overlay = pygame.Surface(
             (
                 self.width,
@@ -1334,6 +1706,7 @@ class UI:
             ),
             pygame.SRCALPHA
         )
+
 
         overlay.fill(
             (
@@ -1344,6 +1717,7 @@ class UI:
             )
         )
 
+
         self.screen.blit(
             overlay,
             (
@@ -1353,13 +1727,10 @@ class UI:
         )
 
 
-        # ---------------------------------
-        # Main box
-        # ---------------------------------
-
         box_width = 620
 
         box_height = 190
+
 
         box_x = (
             self.width // 2
@@ -1373,6 +1744,7 @@ class UI:
             box_height // 2
         )
 
+
         box_rect = pygame.Rect(
             box_x,
             box_y,
@@ -1380,11 +1752,13 @@ class UI:
             box_height
         )
 
+
         pygame.draw.rect(
             self.screen,
             self.INPUT_BACKGROUND,
             box_rect
         )
+
 
         pygame.draw.rect(
             self.screen,
@@ -1394,10 +1768,6 @@ class UI:
         )
 
 
-        # ---------------------------------
-        # Title
-        # ---------------------------------
-
         title = (
             self.ui_font.render(
                 self.text_input_title,
@@ -1405,6 +1775,7 @@ class UI:
                 self.WHITE
             )
         )
+
 
         self.screen.blit(
             title,
@@ -1415,10 +1786,6 @@ class UI:
         )
 
 
-        # ---------------------------------
-        # Text field
-        # ---------------------------------
-
         field_rect = pygame.Rect(
             box_x + 25,
             box_y + 62,
@@ -1426,11 +1793,13 @@ class UI:
             48
         )
 
+
         pygame.draw.rect(
             self.screen,
             self.INPUT_FIELD,
             field_rect
         )
+
 
         pygame.draw.rect(
             self.screen,
@@ -1448,6 +1817,7 @@ class UI:
             )
         )
 
+
         text_surface = (
             self.input_font.render(
                 visible_value,
@@ -1456,9 +1826,11 @@ class UI:
             )
         )
 
+
         text_x = (
             field_rect.x + 10
         )
+
 
         text_y = (
             field_rect.centery
@@ -1467,10 +1839,6 @@ class UI:
             // 2
         )
 
-
-        # ---------------------------------
-        # Selected default/current text
-        # ---------------------------------
 
         if (
             self.text_input_select_all
@@ -1487,6 +1855,7 @@ class UI:
                 )
             )
 
+
             pygame.draw.rect(
                 self.screen,
                 self.SELECTION_COLOR,
@@ -1502,10 +1871,6 @@ class UI:
             )
         )
 
-
-        # ---------------------------------
-        # Cursor
-        # ---------------------------------
 
         if (
             not self.text_input_select_all
@@ -1528,6 +1893,7 @@ class UI:
                 2
             )
 
+
             pygame.draw.line(
                 self.screen,
                 self.WHITE,
@@ -1543,10 +1909,6 @@ class UI:
             )
 
 
-        # ---------------------------------
-        # Instructions
-        # ---------------------------------
-
         instructions = (
             self.small_font.render(
                 "Enter = Save    Esc = Cancel"
@@ -1555,6 +1917,7 @@ class UI:
                 self.SECONDARY_TEXT
             )
         )
+
 
         self.screen.blit(
             instructions,

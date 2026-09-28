@@ -27,7 +27,7 @@ def is_cycle(walk):
     interior vertices.
     """
 
-    if len(walk) < 4:
+    if len(walk) < 2:
         return False
 
     if (

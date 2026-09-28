@@ -16,6 +16,7 @@ from ui import (
     WALK_MODE,
     ALGORITHM_MODE,
     BIPARTITE_MODE,
+    EULER_MODE,
     RESET_ACTION
 )
 
@@ -25,6 +26,10 @@ from algorithms.algorithm1 import (
 
 from algorithms.bipartite import (
     get_bipartite_coloring
+)
+
+from algorithms.euler import (
+    find_euler_cycle
 )
 
 
@@ -52,9 +57,11 @@ screen = pygame.display.set_mode(
     )
 )
 
+
 pygame.display.set_caption(
     "Graph Theory Visualizer"
 )
+
 
 clock = pygame.time.Clock()
 
@@ -68,7 +75,9 @@ graph = GraphModel(
     max_parallel_edges=4
 )
 
+
 walk = WalkSystem()
+
 
 renderer = Renderer(
     screen,
@@ -78,11 +87,13 @@ renderer = Renderer(
     vertex_radius=VERTEX_RADIUS
 )
 
+
 ui = UI(
     screen,
     WIDTH,
     HEIGHT
 )
+
 
 algorithm1 = (
     Algorithm1Session()
@@ -97,9 +108,21 @@ current_mode = (
     EDIT_MODE
 )
 
+
 selected_vertex = None
 
+
 bipartite_colors = {}
+
+
+# Holds:
+
+# {
+#     "vertices": [...],
+#     "edges": [...]
+# }
+
+euler_result = None
 
 
 # =========================================================
@@ -133,22 +156,26 @@ def get_names(
 
 
 # =========================================================
-# GRAPH STRUCTURE CHANGED
+# GRAPH CHANGED
 # =========================================================
 
 def graph_changed():
 
     global bipartite_colors
 
-    # Structural changes invalidate a
-    # previously-built walk because an
-    # edge may have disappeared.
+    global euler_result
+
+
+    # Structural graph changes make
+    # old walk edge IDs invalid.
 
     walk.clear()
 
     algorithm1.reset()
 
     bipartite_colors = {}
+
+    euler_result = None
 
     ui.clear_popup()
 
@@ -164,6 +191,7 @@ def print_walk():
             graph
         )
     )
+
 
     if names:
 
@@ -186,7 +214,10 @@ def reset_graph():
 
     global bipartite_colors
 
+    global euler_result
+
     global last_vertex_click
+
 
     graph.reset()
 
@@ -194,13 +225,19 @@ def reset_graph():
 
     algorithm1.reset()
 
+
     bipartite_colors = {}
+
+    euler_result = None
+
 
     selected_vertex = None
 
     last_vertex_click = None
 
+
     ui.clear_popup()
+
 
     print(
         "Graph reset."
@@ -208,20 +245,18 @@ def reset_graph():
 
 
 # =========================================================
-# BIPARTITE
+# BIPARTITE CHECK
 # =========================================================
 
 def run_bipartite_check():
 
     global bipartite_colors
 
-    # IMPORTANT:
-    # Bipartite algorithm uses permanent
-    # vertex IDs, NOT display names.
 
     adjacency = (
         graph.to_adjacency_ids()
     )
+
 
     result, coloring = (
         get_bipartite_coloring(
@@ -229,32 +264,115 @@ def run_bipartite_check():
         )
     )
 
+
     if result:
 
         bipartite_colors = (
             coloring
         )
 
+
         ui.show_popup(
             "Graph is BIPARTITE",
             success=True
         )
 
+
         print(
             "The graph IS bipartite."
         )
 
+
     else:
 
         bipartite_colors = {}
+
 
         ui.show_popup(
             "Graph is NOT bipartite",
             success=False
         )
 
+
         print(
             "The graph is NOT bipartite."
+        )
+
+
+# =========================================================
+# EULER CHECK
+# =========================================================
+
+def run_euler_check():
+
+    global euler_result
+
+
+    result = (
+        find_euler_cycle(
+            graph
+        )
+    )
+
+
+    # ---------------------------------
+    # NOT EULERIAN
+    # ---------------------------------
+
+    if result is None:
+
+        euler_result = None
+
+
+        ui.show_popup(
+            "Graph is NOT EULERIAN",
+            success=False
+        )
+
+
+        print(
+            "The graph is NOT Eulerian."
+        )
+
+
+        return
+
+
+    # ---------------------------------
+    # EULERIAN
+    # ---------------------------------
+
+    euler_result = result
+
+
+    ui.show_popup(
+        "Graph is EULERIAN",
+        success=True
+    )
+
+
+    print(
+        "The graph IS Eulerian."
+    )
+
+
+    names = get_names(
+        euler_result[
+            "vertices"
+        ]
+    )
+
+
+    if names:
+
+        print(
+            "Euler cycle:"
+        )
+
+        print(
+            " -> ".join(
+                names
+            )
         )
 
 
@@ -271,15 +389,18 @@ def start_algorithm1():
         )
     )
 
+
     if started:
 
         names = get_names(
             algorithm1.path
         )
 
+
         print(
             "Algorithm 1 started."
         )
+
 
         print(
             "P = "
@@ -288,6 +409,7 @@ def start_algorithm1():
                 names
             )
         )
+
 
     else:
 
@@ -311,20 +433,25 @@ def set_mode(
 
     global last_vertex_click
 
+
     current_mode = (
         new_mode
     )
+
 
     selected_vertex = None
 
     last_vertex_click = None
 
+
     ui.close_menu()
+
 
     print(
         f"Mode changed to: "
         f"{current_mode}"
     )
+
 
     if (
         current_mode
@@ -334,6 +461,7 @@ def set_mode(
 
         start_algorithm1()
 
+
     elif (
         current_mode
         ==
@@ -341,6 +469,15 @@ def set_mode(
     ):
 
         run_bipartite_check()
+
+
+    elif (
+        current_mode
+        ==
+        EULER_MODE
+    ):
+
+        run_euler_check()
 
 
 # =========================================================
@@ -352,7 +489,9 @@ def handle_menu_action(
 ):
 
     if action is None:
+
         return
+
 
     if (
         action
@@ -363,6 +502,7 @@ def handle_menu_action(
         reset_graph()
 
         return
+
 
     set_mode(
         action
@@ -385,9 +525,11 @@ def create_vertex(
         )
     )
 
+
     print(
         message
     )
+
 
     if (
         vertex_id
@@ -413,9 +555,11 @@ def create_edge(
         )
     )
 
+
     print(
         message
     )
+
 
     if (
         edge_id
@@ -439,12 +583,16 @@ def remove_vertex(
         )
     )
 
+
     if message is None:
+
         return
+
 
     print(
         message
     )
+
 
     graph_changed()
 
@@ -463,18 +611,22 @@ def remove_edge(
         )
     )
 
+
     if message is None:
+
         return
+
 
     print(
         message
     )
 
+
     graph_changed()
 
 
 # =========================================================
-# WALK CLICK
+# WALK
 # =========================================================
 
 def walk_vertex_click(
@@ -488,9 +640,11 @@ def walk_vertex_click(
         )
     )
 
+
     print(
         message
     )
+
 
     if success:
 
@@ -510,9 +664,11 @@ def walk_edge_click(
         )
     )
 
+
     print(
         message
     )
+
 
     if success:
 
@@ -522,7 +678,7 @@ def walk_edge_click(
 
 
 # =========================================================
-# START RENAME
+# RENAME
 # =========================================================
 
 def begin_vertex_rename(
@@ -533,18 +689,24 @@ def begin_vertex_rename(
 
     global selected_vertex
 
+
     renaming_vertex = (
         vertex_id
     )
 
+
     selected_vertex = None
+
 
     vertex = graph.get_vertex(
         vertex_id
     )
 
+
     if vertex is None:
+
         return
+
 
     ui.open_text_input(
         "Rename Vertex",
@@ -552,15 +714,12 @@ def begin_vertex_rename(
     )
 
 
-# =========================================================
-# SAVE RENAME
-# =========================================================
-
 def save_vertex_rename(
     new_name
 ):
 
     global renaming_vertex
+
 
     if (
         renaming_vertex
@@ -569,6 +728,7 @@ def save_vertex_rename(
 
         return
 
+
     success, message = (
         graph.rename_vertex(
             renaming_vertex,
@@ -576,19 +736,13 @@ def save_vertex_rename(
         )
     )
 
+
     print(
         message
     )
 
-    if success:
 
-        # IMPORTANT:
-        #
-        # Do NOT clear walks or algorithms.
-        #
-        # They use permanent vertex IDs,
-        # so changing the displayed name
-        # does not damage them.
+    if success:
 
         ui.show_popup(
             message,
@@ -596,7 +750,9 @@ def save_vertex_rename(
             duration=1800
         )
 
+
         renaming_vertex = None
+
 
     else:
 
@@ -606,13 +762,13 @@ def save_vertex_rename(
             duration=2200
         )
 
-        # Re-open so the user can correct it.
 
         current_vertex = (
             graph.get_vertex(
                 renaming_vertex
             )
         )
+
 
         if (
             current_vertex
@@ -626,7 +782,7 @@ def save_vertex_rename(
 
 
 # =========================================================
-# DOUBLE CLICK CHECK
+# DOUBLE CLICK
 # =========================================================
 
 def is_double_click(
@@ -637,9 +793,11 @@ def is_double_click(
 
     global last_vertex_click_time
 
+
     now = (
         pygame.time.get_ticks()
     )
+
 
     double_clicked = (
         vertex_id
@@ -653,6 +811,7 @@ def is_double_click(
         DOUBLE_CLICK_TIME
     )
 
+
     if double_clicked:
 
         last_vertex_click = None
@@ -661,13 +820,16 @@ def is_double_click(
 
         return True
 
+
     last_vertex_click = (
         vertex_id
     )
 
+
     last_vertex_click_time = (
         now
     )
+
 
     return False
 
@@ -680,6 +842,7 @@ running = True
 
 
 while running:
+
 
     # =====================================================
     # EVENTS
@@ -704,7 +867,7 @@ while running:
 
 
         # =================================================
-        # TEXT BOX GETS PRIORITY
+        # RENAME BOX HAS PRIORITY
         # =================================================
 
         if ui.text_input_active:
@@ -721,11 +884,13 @@ while running:
                     )
                 )
 
+
                 if result is not None:
 
                     action, value = (
                         result
                     )
+
 
                     if (
                         action
@@ -737,6 +902,7 @@ while running:
                             value
                         )
 
+
                     elif (
                         action
                         ==
@@ -745,8 +911,6 @@ while running:
 
                         renaming_vertex = None
 
-            # Nothing else in the graph
-            # responds while textbox is open.
 
             continue
 
@@ -817,6 +981,7 @@ while running:
 
                     algorithm1.step()
 
+
                     print(
                         algorithm1.message
                     )
@@ -842,6 +1007,7 @@ while running:
                         pygame.mouse.get_pos()
                     )
 
+
                     hovered_vertex = (
                         graph.vertex_at_position(
                             mouse_x,
@@ -849,6 +1015,7 @@ while running:
                             VERTEX_RADIUS
                         )
                     )
+
 
                     if (
                         hovered_vertex
@@ -859,6 +1026,7 @@ while running:
                             hovered_vertex
                         )
 
+
                     else:
 
                         hovered_edge = (
@@ -868,6 +1036,7 @@ while running:
                                 mouse_y
                             )
                         )
+
 
                         if (
                             hovered_edge
@@ -899,12 +1068,14 @@ while running:
                         walk.undo()
                     )
 
+
                     if (
                         removed
                         is not None
                     ):
 
                         algorithm1.reset()
+
 
                         print(
                             "Removed last "
@@ -931,6 +1102,7 @@ while running:
                     walk.clear()
 
                     algorithm1.reset()
+
 
                     print(
                         "Walk cleared."
@@ -986,7 +1158,7 @@ while running:
 
 
             # ---------------------------------------------
-            # ONLY LEFT CLICK BELOW
+            # LEFT CLICK ONLY
             # ---------------------------------------------
 
             if (
@@ -999,7 +1171,7 @@ while running:
 
 
             # ---------------------------------------------
-            # MENU FIRST
+            # MENU
             # ---------------------------------------------
 
             if ui.menu_open:
@@ -1011,9 +1183,11 @@ while running:
                     )
                 )
 
+
                 handle_menu_action(
                     action
                 )
+
 
                 continue
 
@@ -1037,16 +1211,15 @@ while running:
                 )
 
 
-                # -----------------------------------------
-                # CLICKED VERTEX
-                # -----------------------------------------
-
                 if (
                     clicked_vertex
                     is not None
                 ):
 
-                    # Double-click takes priority.
+
+                    # -------------------------------------
+                    # DOUBLE CLICK = RENAME
+                    # -------------------------------------
 
                     if is_double_click(
                         clicked_vertex
@@ -1059,7 +1232,9 @@ while running:
                         continue
 
 
-                    # First vertex of an edge.
+                    # -------------------------------------
+                    # FIRST VERTEX
+                    # -------------------------------------
 
                     if (
                         selected_vertex
@@ -1070,11 +1245,13 @@ while running:
                             clicked_vertex
                         )
 
+
                         label = (
                             graph.get_vertex_label_by_id(
                                 selected_vertex
                             )
                         )
+
 
                         print(
                             f"Selected vertex "
@@ -1082,7 +1259,9 @@ while running:
                         )
 
 
-                    # Second vertex of edge.
+                    # -------------------------------------
+                    # SECOND VERTEX = ADD EDGE
+                    # -------------------------------------
 
                     else:
 
@@ -1090,6 +1269,7 @@ while running:
                             selected_vertex,
                             clicked_vertex
                         )
+
 
                         selected_vertex = None
 
@@ -1103,6 +1283,7 @@ while running:
                     selected_vertex = None
 
                     last_vertex_click = None
+
 
                     create_vertex(
                         mouse_x,
@@ -1128,6 +1309,7 @@ while running:
                     )
                 )
 
+
                 if (
                     clicked_vertex
                     is not None
@@ -1136,6 +1318,7 @@ while running:
                     walk_vertex_click(
                         clicked_vertex
                     )
+
 
                 else:
 
@@ -1146,6 +1329,7 @@ while running:
                             mouse_y
                         )
                     )
+
 
                     if (
                         clicked_edge
@@ -1164,6 +1348,7 @@ while running:
     mouse_x, mouse_y = (
         pygame.mouse.get_pos()
     )
+
 
     hovered_vertex = None
 
@@ -1207,6 +1392,7 @@ while running:
             )
         )
 
+
         if (
             current_mode
             ==
@@ -1216,6 +1402,7 @@ while running:
             hovered_edge = (
                 candidate_edge
             )
+
 
         elif (
             current_mode
@@ -1247,7 +1434,7 @@ while running:
 
 
     # -----------------------------------------------------
-    # EDGES
+    # BASE EDGES
     # -----------------------------------------------------
 
     renderer.draw_edges(
@@ -1257,7 +1444,7 @@ while running:
 
 
     # -----------------------------------------------------
-    # WALK
+    # NORMAL WALK
     # -----------------------------------------------------
 
     if (
@@ -1265,7 +1452,8 @@ while running:
         not in
         (
             ALGORITHM_MODE,
-            BIPARTITE_MODE
+            BIPARTITE_MODE,
+            EULER_MODE
         )
     ):
 
@@ -1276,7 +1464,7 @@ while running:
 
 
     # -----------------------------------------------------
-    # ALGORITHM
+    # ALGORITHM 1
     # -----------------------------------------------------
 
     if (
@@ -1288,6 +1476,27 @@ while running:
         renderer.draw_algorithm(
             graph,
             algorithm1
+        )
+
+
+    # -----------------------------------------------------
+    # EULER CYCLE
+    # -----------------------------------------------------
+
+    if (
+        current_mode
+        ==
+        EULER_MODE
+        and
+        euler_result
+        is not None
+    ):
+
+        renderer.draw_euler_cycle(
+            graph,
+            euler_result[
+                "edges"
+            ]
         )
 
 
@@ -1331,10 +1540,17 @@ while running:
     )
 
 
+    # -----------------------------------------------------
+    # NORMAL WALK UI
+    # -----------------------------------------------------
+
     if (
         current_mode
-        !=
-        BIPARTITE_MODE
+        not in
+        (
+            BIPARTITE_MODE,
+            EULER_MODE
+        )
     ):
 
         ui.draw_walk(
@@ -1348,6 +1564,10 @@ while running:
         )
 
 
+    # -----------------------------------------------------
+    # ALGORITHM 1 UI
+    # -----------------------------------------------------
+
     if (
         current_mode
         ==
@@ -1360,17 +1580,52 @@ while running:
         )
 
 
+    # -----------------------------------------------------
+    # EULER UI
+    # -----------------------------------------------------
+
+    if (
+        current_mode
+        ==
+        EULER_MODE
+        and
+        euler_result
+        is not None
+    ):
+
+        ui.draw_euler_cycle(
+            graph,
+            euler_result
+        )
+
+
+    # -----------------------------------------------------
+    # POPUPS
+    # -----------------------------------------------------
+
     ui.draw_popup()
+
+
+    # -----------------------------------------------------
+    # RIGHT CLICK MENU
+    # -----------------------------------------------------
 
     ui.draw_context_menu()
 
-    # Rename textbox must be last so
-    # it appears above everything.
+
+    # -----------------------------------------------------
+    # RENAME MODAL
+    # -----------------------------------------------------
 
     ui.draw_text_input()
 
 
+    # =====================================================
+    # FRAME
+    # =====================================================
+
     pygame.display.flip()
+
 
     clock.tick(
         60
